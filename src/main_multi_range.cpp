@@ -32,7 +32,7 @@ const bool USE_NLOS_SETTINGS = true;
 	const PinName DW_MOSI_PIN = p5;
 	const PinName DW_MISO_PIN = p6;
 	const PinName DW_SCLK_PIN = p7;
-    const PinName DW_CS_PINS[NUM_OF_DW_UNITS] = {p8};
+    const PinName DW_CS_PINS[NUM_OF_DW_UNITS] = {p9};
 #else ifdef NUCLEO_411RE
     const int NUM_OF_DW_UNITS = 3;
 	const PinName DW_RESET_PIN = D15;
@@ -53,6 +53,7 @@ const int MAX_NUM_OF_DW_UNITS = 4;
 
 
 BufferedSerial pc(USBTX, USBRX, 115200, 8 * 1024);           // USB UART Terminal
+SPI spi(DW_MOSI_PIN, DW_MISO_PIN, DW_SCLK_PIN);
 
 void send_status_message(MAVLinkBridge& mb, char* str, ...)
 {
@@ -185,39 +186,35 @@ int main()
 
     send_status_message(mb, "==== AIT UWB Multi Range ====");
 
-    SPI spi(DW_MOSI_PIN, DW_MISO_PIN, DW_SCLK_PIN);
     spi.format(8, 0);                    // Setup the spi for standard 8 bit data and SPI-Mode 0
     spi.frequency(SPI_FREQUENCY);
 
     Timer timer;
     timer.start();
 
-    DW1000* dw_array[NUM_OF_DW_UNITS];
 
+    DW1000 dw_array[NUM_OF_DW_UNITS]= {DW1000(spi, DW_CS_PINS[0])};
 
-    send_status_message(mb, "Performing hardware reset of UWB modules\r\n");
-    // == IMPORTANT == Create all DW objects first (this will cause a reset of the DW module)
-    DW1000::hardwareReset(DW_RESET_PIN);
 
     // Now we can initialize the DW modules
     for (int i = 0; i < NUM_OF_DW_UNITS; ++i)
     {
-        dw_array[i] = new DW1000(spi, DW_CS_PINS[i]);   // Device driver instanceSPI pins: (MOSI, MISO, SCLK, CS, IRQ, RESET)
-
-        DW1000& dw = *dw_array[i];
-        dw.setEUI(0xFAEDCD01FAEDCD01 + i);                                  // basic methods called to check if we have a working SPI connection
+    	dw_array[i].setEUI(0xFAEDCD01FAEDCD01 + i);                                  // basic methods called to check if we have a working SPI connection
 
         send_status_message(mb, "\r\nUnit %d", i);       
         send_status_message(mb, "\r\nDecaWave 1.0 up and running!");            // Splashscreen
-        send_status_message(mb, "DEVICE_ID register: 0x%X", dw.getDeviceID());
-        send_status_message(mb, "EUI register: %016llX", dw.getEUI());
-        //send_status_message(mb, "Voltage: %.2fV\r\n", dw.getVoltage());
+        send_status_message(mb, "DEVICE_ID register: 0x%X", dw_array[i].getDeviceID());
+
+        uint32_t euiLSB = dw_array[i].getEUI();
+        uint32_t euiMSB = dw_array[i].getEUI() >> 32;
+        send_status_message(mb, "EUI register: 0x%X%X", euiMSB, euiLSB);
+        send_status_message(mb, "Voltage: %.2fV\r\n", dw_array[i].getVoltage());
         
         // Set NLOS settings (According to DecaWave Application Note APS006)
         if (USE_NLOS_SETTINGS)
         {
             send_status_message(mb, "Setting NLOS configuration for Unit %d", i);
-            DW1000Utils::setNLOSSettings(&dw, DATA_RATE_SETTING, PRF_SETTING, PREAMBLE_SETTING);
+            DW1000Utils::setNLOSSettings(&dw_array[i], DATA_RATE_SETTING, PRF_SETTING, PREAMBLE_SETTING);
             
         }
     }
@@ -230,7 +227,7 @@ int main()
     
     for (int i = 0; i < NUM_OF_DW_UNITS; ++i)
     { 
-        tracker.addModule(dw_array[i]);        
+        tracker.addModule(&dw_array[i]);
              
     }
 

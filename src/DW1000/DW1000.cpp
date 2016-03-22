@@ -80,6 +80,7 @@ DW1000::DW1000(SPI& spi, PinName CS, PinName RESET, bool interruptIsInit)
     if(irq != NULL)
     	irq->enable_irq();
 
+    //resetAll();
     startRX();
 }
 
