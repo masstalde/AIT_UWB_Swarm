@@ -52,11 +52,14 @@ int main()
     DW1000::hardwareReset(DW_RESET_PIN);
 
     // Initialize the DW module
-    DW1000 dw(spi, irq, DW_CS_PIN);
-    dw.setEUI(0xFAEDCD01FAEDCD01);                                  // basic methods called to check if we have a working SPI connection
+    DW1000 dw(spi, &irq, DW_CS_PIN);
+    dw.setEUI(0xFAEDCD01FAEDCD00);                                  // basic methods called to check if we have a working SPI connection
     pc.printf("\r\nDecaWave 1.0   up and running!\r\n");            // Splashscreen
     pc.printf("DEVICE_ID register: 0x%X\r\n", dw.getDeviceID());
-    pc.printf("EUI register: %016llX\r\n", dw.getEUI());
+
+    uint32_t euiLSB = dw.getEUI();
+	uint32_t euiMSB = dw.getEUI() >> 32;
+	pc.printf("EUI register: 0x%X%X\r\n", euiMSB, euiLSB);
     pc.printf("Voltage: %.2fV\r\n", dw.getVoltage());
 
     // Set NLOS settings (According to DecaWave Application Note APS006)
@@ -71,7 +74,7 @@ int main()
 
     pc.printf("Entering main loop\r\n");
 
-    slave.startReceiving();
+   // slave.startReceiving();
     while (true)
     {
 //        slave.checkForFrame();

@@ -34,8 +34,10 @@ protected:
 
     // Response delay of the ranging. This should be equal on both sides and has to be bigger than the processing time of the frame on each node.
     // For 110kbps, 2500 is OK. For 6.8Mbps, 900 is OK.
-#ifdef ANSWER_DELAY_US_OVERWRITE
-    const static int ANSWER_DELAY_US = ANSWER_DELAY_US_OVERWRITE;
+#ifdef ANSWER_DELAY_US_MASTER
+    const static int ANSWER_DELAY_US = ANSWER_DELAY_US_MASTER;
+#elif defined ANSWER_DELAY_US_SLAVE
+    const static int ANSWER_DELAY_US = ANSWER_DELAY_US_SLAVE;
 #else
     const int ANSWER_DELAY_US = 2500;
 #endif
@@ -63,9 +65,6 @@ protected:
     struct __attribute__((packed, aligned(1))) ReportRangingFrame : RangingFrame
     {
         int64_t timediff_slave;
-        int64_t timestamp_master_request_1_recv;
-        int64_t timestamp_slave_reply_send;
-        int64_t timestamp_master_request_2_recv;
 #if SLAVE_REPLY_WITH_STATS
         ReceptionStats stats1;
         ReceptionStats stats2;
@@ -78,16 +77,13 @@ protected:
 
     void sendRangingFrame(DW1000* dw_ptr, uint8_t remote_address, uint8_t type);
     void sendDelayedRangingFrame(DW1000* dw_ptr, uint8_t remote_address, uint8_t type, uint64_t timestamp_send);
-    void sendReportFrame(DW1000* dw_ptr, uint8_t remote_address, int64_t timediff_slave,
-        uint64_t timestamp_master_request_1_recv,
-        uint64_t timestamp_slave_reply_send,
-        uint64_t timestamp_master_request_2_recv);
+    void sendReportFrame(DW1000* dw_ptr, uint8_t remote_address, int64_t timediff_slave);
 
-    bool receiveAnyFrameBlocking(DW1000* dw_ptr, float timeout, uint64_t* timestamp_recv = NULL, ReceptionStats* stats = NULL, bool start_recv = true);
+    bool receiveAnyFrameBlocking(DW1000* dw_ptr, float timeout, uint64_t* timestamp_recv = NULL, ReceptionStats* stats = NULL);
 
-    bool receiveFrameBlocking(DW1000* dw_ptr, float timeout, uint64_t* timestamp_recv = NULL, ReceptionStats* stats = NULL, bool start_recv = true);
-    bool receiveFrameBlocking(DW1000* dw_ptr, uint8_t type, float timeout, uint64_t* timestamp_recv = NULL, ReceptionStats* stats = NULL, bool start_recv = true);
-    bool receiveFrameBlocking(DW1000* dw_ptr, uint8_t remote_address, uint8_t type, float timeout, uint64_t* timestamp_recv = NULL, ReceptionStats* stats = NULL, bool start_recv = true);
+    bool receiveTrackerFrameBlocking(DW1000* dw_ptr, float timeout, uint64_t* timestamp_recv = NULL, ReceptionStats* stats = NULL);
+    bool receiveSlaveFrameBlocking(DW1000* dw_ptr, uint8_t type, float timeout, uint64_t* timestamp_recv = NULL, ReceptionStats* stats = NULL);
+    bool receiveMasterFrameBlocking(DW1000* dw_ptr, uint8_t remote_address, uint8_t type, float timeout, uint64_t* timestamp_recv = NULL, ReceptionStats* stats = NULL);
 
     bool sendFrameBlocking(DW1000* dw_ptr, uint8_t* frame, int frame_size, float timeout, uint64_t* timestamp_send = NULL);
     bool sendDelayedFrameBlocking(DW1000* dw_ptr, uint8_t* frame, int frame_size, float timeout, uint64_t* timestamp_send);

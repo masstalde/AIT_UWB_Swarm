@@ -32,7 +32,10 @@ void UWBSlave::stopReceiving()
 
 void UWBSlave::receiveFrameCallback()
 {
-    dw_ptr_->readRegister(DW1000_RX_BUFFER, 0, reinterpret_cast<uint8_t*>(&frame_), dw_ptr_->getFramelength());
+	dw_ptr_->readRegister(DW1000_RX_BUFFER, 0, reinterpret_cast<uint8_t*>(&frame_), dw_ptr_->getFramelength());
+
+    //DEBUG_PRINTF_VA("Received frame: address=%d, remote_address=%d, type=%d\r\n", frame_.address, frame_.remote_address, frame_.type);
+
 
     if (frame_.remote_address == address_)
     {
@@ -55,8 +58,10 @@ void UWBSlave::receiveFrameCallback()
         switch (frame_.type)
         {
             case MASTER_REQUEST_1:
-//                sendRangingFrame(dw_ptr_, sender_address, SLAVE_REPLY);
+            	//sendRangingFrame(dw_ptr_, sender_address, SLAVE_REPLY);
+            	DEBUG_PRINTF("\r\nReceived Master Request 1\r\n");
                 sendDelayedRangingFrame(dw_ptr_, sender_address, SLAVE_REPLY, timestamp_recv + ANSWER_DELAY_TIMEUNITS);
+            	//sendRangingFrame(dw_ptr_, sender_address, SLAVE_REPLY);
                 master_request_1_timestamps_[sender_address] = timestamp_recv;
 #if SLAVE_REPLY_WITH_STATS
                 reception_stats_[sender_address][0].std_noise = std_noise;
@@ -70,6 +75,7 @@ void UWBSlave::receiveFrameCallback()
 #endif
                 break;
             case MASTER_REQUEST_2:
+            	DEBUG_PRINTF("\r\nReceived Master Request 2\r\n");
                 master_request_2_timestamps_[sender_address] = timestamp_recv;
                 correctTimestamps(&master_request_1_timestamps_[sender_address], &slave_reply_timestamps_[sender_address], &master_request_2_timestamps_[sender_address]);
 
@@ -86,22 +92,23 @@ void UWBSlave::receiveFrameCallback()
                 reception_stats_[sender_address][1].channel_impulse_response_power = channel_impulse_response_power;
                 reception_stats_[sender_address][1].prf = prf;
 #endif
-
-                sendReportFrame(dw_ptr_, sender_address, timediff_slave, master_request_1_timestamps_[sender_address], slave_reply_timestamps_[sender_address], master_request_2_timestamps_[sender_address]);
+                //TODO: Find better solution
+                rangingFrame_.type = SLAVE_REPORT;
+                sendReportFrame(dw_ptr_, sender_address, timediff_slave);
 //                DEBUG_PRINTF_VA("timediff_slave %ld\r\n", timediff_slave);
                 break;
         }
     }
 
-//    DEBUG_PRINTF("Received frame\r\n");
     dw_ptr_->startRX();
 }
 
 void UWBSlave::sentFrameCallback()
 {
-//    DEBUG_PRINTF("Sent frame\r\n");
+
     uint8_t remote_address = rangingFrame_.remote_address;
     uint8_t frame_type = rangingFrame_.type;
+    DEBUG_PRINTF_VA("Sent slave reply type %i\r\n", frame_type);
     switch (frame_type)
     {
     case SLAVE_REPLY:
@@ -115,7 +122,7 @@ void UWBSlave::checkForFrame(float timeout) {
     // Waiting for frame
 //    DEBUG_PRINTF("Waiting for frame ...\r\n")
     uint64_t timestamp_recv;
-    bool recv_status = receiveFrameBlocking(dw_ptr_, timeout, &timestamp_recv, NULL);
+    bool recv_status = receiveTrackerFrameBlocking(dw_ptr_, timeout, &timestamp_recv, NULL);
     if (!recv_status)
     {
         ERROR_PRINTF("Unable to receive frame within timeout\r\n");

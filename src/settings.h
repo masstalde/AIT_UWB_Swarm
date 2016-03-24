@@ -19,13 +19,20 @@ const DW1000Utils::PrfSetting PRF_SETTING = DW1000Utils::PRF_16_MHz;
 
 const DW1000Utils::DataRateSetting DATA_RATE_SETTING = DW1000Utils::RATE_110_kbps;
 const uint32_t PREAMBLE_SETTING = DW1000Utils::PREAMBLE_LENGTH_1024;
-#define ANSWER_DELAY_US_OVERWRITE 2500
+
 
 //#undef _DEBUG
 #define _DEBUG 1
 #define PRINT_ERRORS 1 
 #define SLAVE_REPLY_WITH_STATS 0
 #define BUILD_SLAVE 0
+
+#if BUILD_SLAVE
+	#define ANSWER_DELAY_US_SLAVE	5100
+#else
+	#define ANSWER_DELAY_US_MASTER	5000
+#endif
+
 
 #if _DEBUG
     #ifndef _DEBUG_PC_DEFINED

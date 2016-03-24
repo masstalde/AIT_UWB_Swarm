@@ -11,6 +11,7 @@
 namespace ait
 {
 
+template <size_t N>
 class UWB2WayMultiRange : public UWBProtocol
 {
 public:
@@ -38,13 +39,15 @@ public:
         float primary_tof;
         float primary_range;
 
-        std::vector<uint64_t> timestamp_master_request_1;
-        std::vector<uint64_t> timestamp_slave_reply;
-        std::vector<uint64_t> timestamp_master_request_2;
+        uint64_t timestamp_master_request_1[N];
+        uint64_t timestamp_slave_reply[N];
+        uint64_t timestamp_master_request_2[N];
 
         uint64_t timestamp_master_request_1_recv;
         uint64_t timestamp_slave_reply_send;
         uint64_t timestamp_master_request_2_recv;
+
+        uint64_t timeDiffSlave;
 
         std::vector<ReceptionStats> stats;
         RangingStatus status;
@@ -80,12 +83,15 @@ public:
     float convertTimeOfFlightToDistance(float tof) const;
 
 protected:
-    std::vector<DW1000*> dw_array_;
-//    RangingResult result_;
-    RawRangingResult raw_result_;
+    DW1000* dw_array_[N];
+    uint8_t moduleCounter;
+    RawRangingResult raw_result_;			//    RangingResult result_;
+
 
     bool receiveFramesBlocking(std::vector<DW1000*>& dw_array, float timeout, uint64_t* timestamp_recv = NULL, ReceptionStats* stats = NULL);
     bool receiveFramesBlocking(std::vector<DW1000*>& dw_array, uint8_t type, float timeout, uint64_t* timestamp_recv = NULL, ReceptionStats* stats = NULL);
 };
 
 }
+
+#include "UWB2WayMultiRange.cpp"

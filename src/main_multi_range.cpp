@@ -27,12 +27,12 @@ const int SLAVE_ADDRESS_OFFSET = 10;
 const bool USE_NLOS_SETTINGS = true;
 
 #ifdef MBED_LPC1768
-	const int NUM_OF_DW_UNITS = 1;
+	const int NUM_OF_DW_UNITS = 4;
 	const PinName DW_RESET_PIN = p15;
 	const PinName DW_MOSI_PIN = p5;
 	const PinName DW_MISO_PIN = p6;
 	const PinName DW_SCLK_PIN = p7;
-    const PinName DW_CS_PINS[NUM_OF_DW_UNITS] = {p9};
+    //const PinName DW_CS_PINS[NUM_OF_DW_UNITS] = {p8, p9, p10};
 #else ifdef NUCLEO_411RE
     const int NUM_OF_DW_UNITS = 3;
 	const PinName DW_RESET_PIN = D15;
@@ -77,7 +77,7 @@ void send_status_message(MAVLinkBridge& mb, char* str, ...)
     va_end(args);
 }
 
-void measureTimesOfFlight(UWB2WayMultiRange& tracker, MAVLinkBridge& mb, Timer& timer, float ranging_timeout = 0.1f)
+void measureTimesOfFlight(UWB2WayMultiRange<NUM_OF_DW_UNITS>& tracker, MAVLinkBridge& mb, Timer& timer, float ranging_timeout = 0.1f)
 {
 #if _DEBUG
     int time_begin_us = timer.read_us();
@@ -91,8 +91,8 @@ void measureTimesOfFlight(UWB2WayMultiRange& tracker, MAVLinkBridge& mb, Timer& 
     for (int i = 0; i < NUM_OF_SLAVES; i++)
     {
         uint8_t remote_address = SLAVE_ADDRESS_OFFSET + i;
-        const UWB2WayMultiRange::RawRangingResult& raw_result = tracker.measureTimesOfFlight(remote_address, ranging_timeout);
-        if (raw_result.status == UWB2WayMultiRange::SUCCESS)
+        const typename UWB2WayMultiRange<NUM_OF_DW_UNITS>::RawRangingResult& raw_result = tracker.measureTimesOfFlight(remote_address, ranging_timeout);
+        if (raw_result.status == UWB2WayMultiRange<NUM_OF_DW_UNITS>::SUCCESS)
         {
             if (MAVLINK_COMM)
             {
@@ -132,7 +132,8 @@ void measureTimesOfFlight(UWB2WayMultiRange& tracker, MAVLinkBridge& mb, Timer& 
             {
                 for (int j = 0; j < tracker.getNumOfModules(); ++j)
                 {
-                    int64_t timediff_slave = raw_result.timestamp_master_request_1_recv + raw_result.timestamp_master_request_2_recv - 2 * raw_result.timestamp_slave_reply_send;
+                    //int64_t timediff_slave = raw_result.timestamp_master_request_1_recv + raw_result.timestamp_master_request_2_recv - 2 * raw_result.timestamp_slave_reply_send;
+                    int64_t timediff_slave = raw_result.timeDiffSlave;
                     // Calculation of the summand on the sending node/beacon
                     int64_t timediff_master = 2 * raw_result.timestamp_slave_reply[j] - raw_result.timestamp_master_request_1[j] - raw_result.timestamp_master_request_2[j];
                     // Calculation of the resulting sum of all four ToFs.
@@ -146,7 +147,7 @@ void measureTimesOfFlight(UWB2WayMultiRange& tracker, MAVLinkBridge& mb, Timer& 
         }
         else
         {
-            send_status_message(mb, "Ranging failed: %s - %s", UWB2WayMultiRange::RANGING_STATUS_MESSAGES[raw_result.status], raw_result.status_description);
+            send_status_message(mb, "Ranging failed: %s - %s", UWB2WayMultiRange<NUM_OF_DW_UNITS>::RANGING_STATUS_MESSAGES[raw_result.status], raw_result.status_description);
         }
 #if MEASURE_UWB_RANGING_RATE
         ++range_counter;
@@ -193,7 +194,7 @@ int main()
     timer.start();
 
 
-    DW1000 dw_array[NUM_OF_DW_UNITS]= {DW1000(spi, DW_CS_PINS[0])};
+    DW1000 dw_array[NUM_OF_DW_UNITS]= {DW1000(spi, p8), DW1000(spi, p9), DW1000(spi, p10), DW1000(spi, p21)};
 
 
     // Now we can initialize the DW modules
@@ -222,7 +223,7 @@ int main()
     send_status_message(mb, "Initializing tracker with address %d", TRACKER_ADDRESS);
     wait_ms(100);
 
-    UWB2WayMultiRange tracker(TRACKER_ADDRESS);
+    UWB2WayMultiRange<NUM_OF_DW_UNITS> tracker(TRACKER_ADDRESS);
     
     
     for (int i = 0; i < NUM_OF_DW_UNITS; ++i)
@@ -235,16 +236,9 @@ int main()
 
     while (true)
     {
-        for (int j = 0; j < NUM_OF_DW_UNITS; ++j)
-        {
-            measureTimesOfFlight(tracker, mb, timer);
-        }
-    }
 
-//    for (int i = 0; i < NUM_OF_DW_UNITS; ++i)
-//    {
-//        delete node_array[i];
-//        delete dw_array[i];
-//    }
+            measureTimesOfFlight(tracker, mb, timer, 1.0);
+
+    }
 }
 #endif

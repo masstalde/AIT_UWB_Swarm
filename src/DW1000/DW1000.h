@@ -59,7 +59,7 @@ class DW1000
         const static uint64_t CONST_2POWER40 = 1099511627776;  // Time register in DW1000 is 40 bit so this is needed to detect overflows.
 
         DW1000(SPI& spi, InterruptIn* irq, PinName CS, PinName RESET = NC);              // constructor, uses SPI class
-        DW1000(SPI& spi, PinName CS, PinName RESET = NC, bool interruptIsInit = false); 									//Constructor without irq pin
+        DW1000(SPI& spi, PinName CS, PinName RESET = NC, bool interruptIsInit = false);  //Constructor without irq pin
 
         void setCallbacks(void (*callbackRX)(void), void (*callbackTX)(void));                  // setter for callback functions, automatically enables interrupt, if NULL is passed the coresponding interrupt gets disabled
         template<typename T>
@@ -78,6 +78,7 @@ class DW1000
         uint64_t getStatus();                                                                   // get the 40 bit device status
         bool hasSentFrame();
         bool hasReceivedFrame();
+        uint16_t getFramelength();                                                              // to get the framelength of the received frame from the PHY header
         void clearReceivedFlag();
         void clearSentFlag();
         uint64_t getSYSTimestamp();
@@ -102,26 +103,8 @@ class DW1000
         void sendDelayedFrame(uint8_t* message, uint16_t length, uint64_t TxTimestamp);
         void startRX();                                                                         // start listening for frames
         void stopTRX();                                                                         // disable tranceiver go back to idle mode
-        
-    //private:
-        void loadLDE();                                                                         // load the leading edge detection algorithm to RAM, [IMPORTANT because receiving malfunction may occur] see User Manual LDELOAD on p22 & p158
-        void resetRX();                                                                         // soft reset only the tranciever part of DW1000
         static void hardwareReset(PinName reset_pin);
-        void resetAll();                                                                        // soft reset the entire DW1000 (some registers stay as they were see User Manual)
 
-        // Interrupt
-        InterruptIn* irq;
-        FunctionPointer callbackRX;                                                             // function pointer to callback which is called when successfull RX took place
-        FunctionPointer callbackTX;                                                             // function pointer to callback which is called when successfull TX took place
-        void setInterrupt(bool RX, bool TX);                                                    // set Interrupt for received a good frame (CRC ok) or transmission done
-        void ISR();                                                                             // interrupt handling method (also calls according callback methods)
-        uint16_t getFramelength();                                                              // to get the framelength of the received frame from the PHY header
-        
-        // SPI Inteface
-        SPI& spi;                                                                                // SPI Bus
-        DigitalOut cs;                                                                          // Slave selector for SPI-Bus (here explicitly needed to start and end SPI transactions also usable to wake up DW1000)
-        DigitalOut reset;
-        
         uint8_t readRegister8(uint8_t reg, uint16_t subaddress);                                // expressive methods to read or write the number of bits written in the name
         uint16_t readRegister16(uint8_t reg, uint16_t subaddress);
         uint32_t readRegister32(uint8_t reg, uint16_t subaddress);
@@ -130,8 +113,27 @@ class DW1000
         void writeRegister16(uint8_t reg, uint16_t subaddress, uint16_t buffer);
         void writeRegister32(uint8_t reg, uint16_t subaddress, uint32_t buffer);
         void writeRegister40(uint8_t reg, uint16_t subaddress, uint64_t buffer);
-
+        
         void readRegister(uint8_t reg, uint16_t subaddress, uint8_t *buffer, int length);       // reads the selected part of a slave register into the buffer memory
+
+
+    private:
+        void loadLDE();                                                                         // load the leading edge detection algorithm to RAM, [IMPORTANT because receiving malfunction may occur] see User Manual LDELOAD on p22 & p158
+        void resetRX();                                                                         // soft reset only the tranciever part of DW1000
+        void resetAll();                                                                        // soft reset the entire DW1000 (some registers stay as they were see User Manual)
+
+        // Interrupt
+        InterruptIn* irq;
+        FunctionPointer callbackRX;                                                             // function pointer to callback which is called when successfull RX took place
+        FunctionPointer callbackTX;                                                             // function pointer to callback which is called when successfull TX took place
+        void setInterrupt(bool RX, bool TX);                                                    // set Interrupt for received a good frame (CRC ok) or transmission done
+        void ISR();                                                                             // interrupt handling method (also calls according callback methods)
+        
+        // SPI Inteface
+        SPI& spi;                                                                                // SPI Bus
+        DigitalOut cs;                                                                          // Slave selector for SPI-Bus (here explicitly needed to start and end SPI transactions also usable to wake up DW1000)
+        DigitalOut reset;
+
         void writeRegister(uint8_t reg, uint16_t subaddress, uint8_t *buffer, int length);      // writes the buffer memory to the selected slave register
         void setupTransaction(uint8_t reg, uint16_t subaddress, bool write);                    // sets up an SPI read or write transaction with correct register address and offset
         void select();                                                                          // selects the only slave for a transaction

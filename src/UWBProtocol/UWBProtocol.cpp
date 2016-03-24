@@ -29,30 +29,17 @@ void UWBProtocol::sendDelayedRangingFrame(DW1000* dw_ptr, uint8_t remote_address
     dw_ptr->sendDelayedFrame(reinterpret_cast<uint8_t*>(&rangingFrame_), sizeof(rangingFrame_), timestamp_send);
 }
 
-void UWBProtocol::sendReportFrame(DW1000* dw_ptr, uint8_t remote_address, int64_t timediff_slave,
-    uint64_t timestamp_master_request_1_recv,
-    uint64_t timestamp_slave_reply_send,
-    uint64_t timestamp_master_request_2_recv)
-//void UWBProtocol::sendReportFrame(DW1000* dw_ptr, uint8_t remote_address, int64_t timediff_slave)
+void UWBProtocol::sendReportFrame(DW1000* dw_ptr, uint8_t remote_address, int64_t timediff_slave)
 {
     reportFrame_.address = address_;
     reportFrame_.remote_address = remote_address;
     reportFrame_.type = SLAVE_REPORT;
     reportFrame_.timediff_slave = timediff_slave;
-    reportFrame_.timestamp_master_request_1_recv = timestamp_master_request_1_recv;
-    reportFrame_.timestamp_slave_reply_send = timestamp_slave_reply_send;
-    reportFrame_.timestamp_master_request_2_recv = timestamp_master_request_2_recv;
     dw_ptr->sendFrame(reinterpret_cast<uint8_t*>(&reportFrame_), sizeof(reportFrame_));
 }
 
-bool UWBProtocol::receiveAnyFrameBlocking(DW1000* dw_ptr, float timeout, uint64_t* timestamp_recv, ReceptionStats* stats, bool start_recv)
+bool UWBProtocol::receiveAnyFrameBlocking(DW1000* dw_ptr, float timeout, uint64_t* timestamp_recv, ReceptionStats* stats)
 {
-    if (start_recv)
-    {
-        dw_ptr->clearReceivedFlag();
-        dw_ptr->stopTRX();
-        dw_ptr->startRX();
-    }
     float time_before = timer_.read();
     bool status = false;
     // Polling
@@ -60,6 +47,7 @@ bool UWBProtocol::receiveAnyFrameBlocking(DW1000* dw_ptr, float timeout, uint64_
     {
         status = dw_ptr->hasReceivedFrame();
     }
+
     if (status)
     {
         uint16_t frame_length = dw_ptr->getFramelength();
@@ -69,7 +57,8 @@ bool UWBProtocol::receiveAnyFrameBlocking(DW1000* dw_ptr, float timeout, uint64_
             return false;
         }
         dw_ptr->readRegister(DW1000_RX_BUFFER, 0, (uint8_t*)&receivedFrame_, frame_length);
-//        DEBUG_PRINTF_VA("Received frame: address=%d, remote_address=%d, type=%d\r\n", receivedFrame_.address, receivedFrame_.remote_address, receivedFrame_.type);
+
+        DEBUG_PRINTF_VA("Received frame: address=%d, remote_address=%d, type=%d\r\n", receivedFrame_.address, receivedFrame_.remote_address, receivedFrame_.type);
 
         if (stats != NULL)
         {
@@ -95,16 +84,22 @@ bool UWBProtocol::receiveAnyFrameBlocking(DW1000* dw_ptr, float timeout, uint64_
         {
             *timestamp_recv = dw_ptr->getRXTimestamp();
         }
+
+        //After receveing anything, RX re-enabled (flag clears automatically)
+		//dw_ptr->clearReceivedFlag();
+		dw_ptr->startRX();
+
     }
+
     return status;
 }
 
-bool UWBProtocol::receiveFrameBlocking(DW1000* dw_ptr, float timeout, uint64_t* timestamp_recv, ReceptionStats* stats, bool start_recv)
+bool UWBProtocol::receiveTrackerFrameBlocking(DW1000* dw_ptr, float timeout, uint64_t* timestamp_recv, ReceptionStats* stats)
 {
     float time_before = timer_.read();
     while (timer_.read() - time_before < timeout)
     {
-        bool recv_status = receiveAnyFrameBlocking(dw_ptr, timeout, timestamp_recv, stats, start_recv);
+        bool recv_status = receiveAnyFrameBlocking(dw_ptr, timeout, timestamp_recv, stats);
         if (recv_status)
         {
             if (receivedFrame_.remote_address == address_)
@@ -116,12 +111,12 @@ bool UWBProtocol::receiveFrameBlocking(DW1000* dw_ptr, float timeout, uint64_t* 
     return false;
 }
 
-bool UWBProtocol::receiveFrameBlocking(DW1000* dw_ptr, uint8_t type, float timeout, uint64_t* timestamp_recv, ReceptionStats* stats, bool start_recv)
+bool UWBProtocol::receiveSlaveFrameBlocking(DW1000* dw_ptr, uint8_t type, float timeout, uint64_t* timestamp_recv, ReceptionStats* stats )
 {
     float time_before = timer_.read();
     while (timer_.read() - time_before < timeout)
     {
-        bool recv_status = receiveAnyFrameBlocking(dw_ptr, timeout, timestamp_recv, stats, start_recv);
+        bool recv_status = receiveAnyFrameBlocking(dw_ptr, timeout, timestamp_recv, stats);
         if (recv_status)
         {
             if (receivedFrame_.remote_address == address_ && receivedFrame_.type == type)
@@ -133,12 +128,12 @@ bool UWBProtocol::receiveFrameBlocking(DW1000* dw_ptr, uint8_t type, float timeo
     return false;
 }
 
-bool UWBProtocol::receiveFrameBlocking(DW1000* dw_ptr, uint8_t remote_address, uint8_t type, float timeout, uint64_t* timestamp_recv, ReceptionStats* stats, bool start_recv)
+bool UWBProtocol::receiveMasterFrameBlocking(DW1000* dw_ptr, uint8_t remote_address, uint8_t type, float timeout, uint64_t* timestamp_recv, ReceptionStats* stats )
 {
     float time_before = timer_.read();
     while (timer_.read() - time_before < timeout)
     {
-        bool recv_status = receiveAnyFrameBlocking(dw_ptr, timeout, timestamp_recv, stats, start_recv);
+        bool recv_status = receiveAnyFrameBlocking(dw_ptr, timeout, timestamp_recv, stats);
         if (recv_status)
         {
             if (receivedFrame_.remote_address == remote_address && receivedFrame_.type == type)
@@ -152,10 +147,11 @@ bool UWBProtocol::receiveFrameBlocking(DW1000* dw_ptr, uint8_t remote_address, u
 
 bool UWBProtocol::sendFrameBlocking(DW1000* dw_ptr, uint8_t* frame, int frame_size, float timeout, uint64_t* timestamp_send)
 {
-    dw_ptr->clearSentFlag();
-    dw_ptr->sendFrame(frame, frame_size);
     float time_before = timer_.read();
     bool status = false;
+
+    dw_ptr->sendFrame(frame, frame_size);			//Send the frame and re-enable RX
+
     // Polling
     while (!status && timer_.read() < time_before + timeout)
     {
@@ -175,15 +171,22 @@ bool UWBProtocol::sendFrameBlocking(DW1000* dw_ptr, uint8_t* frame, int frame_si
 
 bool UWBProtocol::sendDelayedFrameBlocking(DW1000* dw_ptr, uint8_t* frame, int frame_size, float timeout, uint64_t* timestamp_send)
 {
-    dw_ptr->clearSentFlag();
+
+	float time_before = timer_.read();
+	bool status = false;
+
+	dw_ptr->clearSentFlag();
     dw_ptr->sendDelayedFrame(frame, frame_size, *timestamp_send);
-    dw_ptr->sendFrame(frame, frame_size);
-    float time_before = timer_.read();
-    bool status = false;
+
+    //WTF?????
+    //dw_ptr->sendFrame(frame, frame_size);		//WTF?????
+
+    uint64_t counter = 0;
     // Polling
     while (!status && timer_.read() < time_before + timeout)
     {
         status = dw_ptr->hasSentFrame();
+        counter++;
     }
     if (status)
     {
@@ -194,6 +197,9 @@ bool UWBProtocol::sendDelayedFrameBlocking(DW1000* dw_ptr, uint8_t* frame, int f
             *timestamp_send = dw_ptr->getTXTimestamp();
         }
     }
+
+    //dw_ptr->startRX();
+
     return status;
 }
 
