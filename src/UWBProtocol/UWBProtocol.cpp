@@ -58,7 +58,7 @@ bool UWBProtocol::receiveAnyFrameBlocking(DW1000* dw_ptr, float timeout, uint64_
         }
         dw_ptr->readRegister(DW1000_RX_BUFFER, 0, (uint8_t*)&receivedFrame_, frame_length);
 
-        DEBUG_PRINTF_VA("Received frame: address=%d, remote_address=%d, type=%d\r\n", receivedFrame_.address, receivedFrame_.remote_address, receivedFrame_.type);
+        //DEBUG_PRINTF_VA("Received frame: address=%d, remote_address=%d, type=%d\r\n", receivedFrame_.address, receivedFrame_.remote_address, receivedFrame_.type);
 
         if (stats != NULL)
         {
@@ -86,7 +86,6 @@ bool UWBProtocol::receiveAnyFrameBlocking(DW1000* dw_ptr, float timeout, uint64_
         }
 
         //After receveing anything, RX re-enabled (flag clears automatically)
-		//dw_ptr->clearReceivedFlag();
 		dw_ptr->startRX();
 
     }
@@ -159,8 +158,8 @@ bool UWBProtocol::sendFrameBlocking(DW1000* dw_ptr, uint8_t* frame, int frame_si
     }
     if (status)
     {
-//        RangingFrame* ranging_frame = reinterpret_cast<RangingFrame*>(frame);
-//        DEBUG_PRINTF_VA("Sent frame: address=%d, remote_address=%d, type=%d\r\n", ranging_frame->address, ranging_frame->remote_address, ranging_frame->type);
+    	//RangingFrame* ranging_frame = reinterpret_cast<RangingFrame*>(frame);
+    	//DEBUG_PRINTF_VA("Sent frame: address=%d, remote_address=%d, type=%d\r\n", ranging_frame->address, ranging_frame->remote_address, ranging_frame->type);
         if (timestamp_send != NULL)
         {
             *timestamp_send = dw_ptr->getTXTimestamp();
@@ -175,31 +174,21 @@ bool UWBProtocol::sendDelayedFrameBlocking(DW1000* dw_ptr, uint8_t* frame, int f
 	float time_before = timer_.read();
 	bool status = false;
 
-	dw_ptr->clearSentFlag();
     dw_ptr->sendDelayedFrame(frame, frame_size, *timestamp_send);
 
-    //WTF?????
-    //dw_ptr->sendFrame(frame, frame_size);		//WTF?????
-
-    uint64_t counter = 0;
     // Polling
     while (!status && timer_.read() < time_before + timeout)
     {
         status = dw_ptr->hasSentFrame();
-        counter++;
     }
     if (status)
     {
-//        RangingFrame* ranging_frame = reinterpret_cast<RangingFrame*>(frame);
-//        DEBUG_PRINTF_VA("Sent delayed frame: address=%d, remote_address=%d, type=%d\r\n", ranging_frame->address, ranging_frame->remote_address, ranging_frame->type);
+    	//DEBUG_PRINTF_VA("Sent delayed frame: address=%d, remote_address=%d, type=%d\r\n", ranging_frame->address, ranging_frame->remote_address, ranging_frame->type);
         if (timestamp_send != NULL)
         {
             *timestamp_send = dw_ptr->getTXTimestamp();
         }
     }
-
-    //dw_ptr->startRX();
-
     return status;
 }
 

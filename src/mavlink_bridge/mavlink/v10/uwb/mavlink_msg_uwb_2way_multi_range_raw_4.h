@@ -4,9 +4,7 @@
 
 typedef struct __mavlink_uwb_2way_multi_range_raw_4_t
 {
- uint64_t timestamp_master_request_1_recv; /*< Timestamp of master request 1 on slave module.*/
- uint64_t timestamp_slave_reply_send; /*< Timestamp of slave reply on slave module.*/
- uint64_t timestamp_master_request_2_recv; /*< Timestamp of master request 2 on slave module.*/
+ int64_t time_diff_slave;
  uint64_t timestamp_master_request_1[4]; /*< Timestamp of master request 1 on tracker modules.*/
  uint64_t timestamp_slave_reply[4]; /*< Timestamp of slave reply on tracker modules.*/
  uint64_t timestamp_master_request_2[4]; /*< Timestamp of master request 2 on tracker modules.*/
@@ -59,7 +57,7 @@ typedef struct __mavlink_uwb_2way_multi_range_raw_4_t
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_uwb_2way_multi_range_raw_4_pack(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg,
-						       uint8_t num_of_units, uint8_t address, uint8_t remote_address, uint64_t timestamp_master_request_1_recv, uint64_t timestamp_slave_reply_send, uint64_t timestamp_master_request_2_recv, const uint64_t *timestamp_master_request_1, const uint64_t *timestamp_slave_reply, const uint64_t *timestamp_master_request_2)
+						       uint8_t num_of_units, uint8_t address, uint8_t remote_address, const int64_t time_diff_slave, const uint64_t *timestamp_master_request_1, const uint64_t *timestamp_slave_reply, const uint64_t *timestamp_master_request_2)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
 	char buf[MAVLINK_MSG_ID_UWB_2WAY_MULTI_RANGE_RAW_4_LEN];
@@ -75,12 +73,10 @@ static inline uint16_t mavlink_msg_uwb_2way_multi_range_raw_4_pack(uint8_t syste
         memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, MAVLINK_MSG_ID_UWB_2WAY_MULTI_RANGE_RAW_4_LEN);
 #else
 	mavlink_uwb_2way_multi_range_raw_4_t packet;
-	packet.timestamp_master_request_1_recv = timestamp_master_request_1_recv;
-	packet.timestamp_slave_reply_send = timestamp_slave_reply_send;
-	packet.timestamp_master_request_2_recv = timestamp_master_request_2_recv;
 	packet.num_of_units = num_of_units;
 	packet.address = address;
 	packet.remote_address = remote_address;
+	packet.time_diff_slave = time_diff_slave;
 	mav_array_memcpy(packet.timestamp_master_request_1, timestamp_master_request_1, sizeof(uint64_t)*4);
 	mav_array_memcpy(packet.timestamp_slave_reply, timestamp_slave_reply, sizeof(uint64_t)*4);
 	mav_array_memcpy(packet.timestamp_master_request_2, timestamp_master_request_2, sizeof(uint64_t)*4);
@@ -114,7 +110,7 @@ static inline uint16_t mavlink_msg_uwb_2way_multi_range_raw_4_pack(uint8_t syste
  */
 static inline uint16_t mavlink_msg_uwb_2way_multi_range_raw_4_pack_chan(uint8_t system_id, uint8_t component_id, uint8_t chan,
 							   mavlink_message_t* msg,
-						           uint8_t num_of_units,uint8_t address,uint8_t remote_address,uint64_t timestamp_master_request_1_recv,uint64_t timestamp_slave_reply_send,uint64_t timestamp_master_request_2_recv,const uint64_t *timestamp_master_request_1,const uint64_t *timestamp_slave_reply,const uint64_t *timestamp_master_request_2)
+						           uint8_t num_of_units,uint8_t address,uint8_t remote_address,uint64_t time_diff_slave, const uint64_t *timestamp_master_request_1,const uint64_t *timestamp_slave_reply,const uint64_t *timestamp_master_request_2)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
 	char buf[MAVLINK_MSG_ID_UWB_2WAY_MULTI_RANGE_RAW_4_LEN];
@@ -130,9 +126,6 @@ static inline uint16_t mavlink_msg_uwb_2way_multi_range_raw_4_pack_chan(uint8_t 
         memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, MAVLINK_MSG_ID_UWB_2WAY_MULTI_RANGE_RAW_4_LEN);
 #else
 	mavlink_uwb_2way_multi_range_raw_4_t packet;
-	packet.timestamp_master_request_1_recv = timestamp_master_request_1_recv;
-	packet.timestamp_slave_reply_send = timestamp_slave_reply_send;
-	packet.timestamp_master_request_2_recv = timestamp_master_request_2_recv;
 	packet.num_of_units = num_of_units;
 	packet.address = address;
 	packet.remote_address = remote_address;
@@ -160,7 +153,7 @@ static inline uint16_t mavlink_msg_uwb_2way_multi_range_raw_4_pack_chan(uint8_t 
  */
 static inline uint16_t mavlink_msg_uwb_2way_multi_range_raw_4_encode(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg, const mavlink_uwb_2way_multi_range_raw_4_t* uwb_2way_multi_range_raw_4)
 {
-	return mavlink_msg_uwb_2way_multi_range_raw_4_pack(system_id, component_id, msg, uwb_2way_multi_range_raw_4->num_of_units, uwb_2way_multi_range_raw_4->address, uwb_2way_multi_range_raw_4->remote_address, uwb_2way_multi_range_raw_4->timestamp_master_request_1_recv, uwb_2way_multi_range_raw_4->timestamp_slave_reply_send, uwb_2way_multi_range_raw_4->timestamp_master_request_2_recv, uwb_2way_multi_range_raw_4->timestamp_master_request_1, uwb_2way_multi_range_raw_4->timestamp_slave_reply, uwb_2way_multi_range_raw_4->timestamp_master_request_2);
+	return mavlink_msg_uwb_2way_multi_range_raw_4_pack(system_id, component_id, msg, uwb_2way_multi_range_raw_4->num_of_units, uwb_2way_multi_range_raw_4->address, uwb_2way_multi_range_raw_4->remote_address, uwb_2way_multi_range_raw_4->time_diff_slave, uwb_2way_multi_range_raw_4->timestamp_master_request_1, uwb_2way_multi_range_raw_4->timestamp_slave_reply, uwb_2way_multi_range_raw_4->timestamp_master_request_2);
 }
 
 /**
@@ -174,7 +167,7 @@ static inline uint16_t mavlink_msg_uwb_2way_multi_range_raw_4_encode(uint8_t sys
  */
 static inline uint16_t mavlink_msg_uwb_2way_multi_range_raw_4_encode_chan(uint8_t system_id, uint8_t component_id, uint8_t chan, mavlink_message_t* msg, const mavlink_uwb_2way_multi_range_raw_4_t* uwb_2way_multi_range_raw_4)
 {
-	return mavlink_msg_uwb_2way_multi_range_raw_4_pack_chan(system_id, component_id, chan, msg, uwb_2way_multi_range_raw_4->num_of_units, uwb_2way_multi_range_raw_4->address, uwb_2way_multi_range_raw_4->remote_address, uwb_2way_multi_range_raw_4->timestamp_master_request_1_recv, uwb_2way_multi_range_raw_4->timestamp_slave_reply_send, uwb_2way_multi_range_raw_4->timestamp_master_request_2_recv, uwb_2way_multi_range_raw_4->timestamp_master_request_1, uwb_2way_multi_range_raw_4->timestamp_slave_reply, uwb_2way_multi_range_raw_4->timestamp_master_request_2);
+	return mavlink_msg_uwb_2way_multi_range_raw_4_pack_chan(system_id, component_id, chan, msg, uwb_2way_multi_range_raw_4->num_of_units, uwb_2way_multi_range_raw_4->address, uwb_2way_multi_range_raw_4->remote_address, uwb_2way_multi_range_raw_4->time_diff_slave, uwb_2way_multi_range_raw_4->timestamp_master_request_1, uwb_2way_multi_range_raw_4->timestamp_slave_reply, uwb_2way_multi_range_raw_4->timestamp_master_request_2);
 }
 
 /**

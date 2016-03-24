@@ -119,9 +119,7 @@ void measureTimesOfFlight(UWB2WayMultiRange<NUM_OF_DW_UNITS>& tracker, MAVLinkBr
                     tracker.getNumOfModules(),
                     tracker.getAddress(),
                     remote_address,
-                    raw_result.timestamp_master_request_1_recv,
-                    raw_result.timestamp_slave_reply_send,
-                    raw_result.timestamp_master_request_2_recv,
+                    raw_result.timeDiffSlave,
                     timestamp_master_request_1,
                     timestamp_slave_reply,
                     timestamp_master_request_2
@@ -132,7 +130,6 @@ void measureTimesOfFlight(UWB2WayMultiRange<NUM_OF_DW_UNITS>& tracker, MAVLinkBr
             {
                 for (int j = 0; j < tracker.getNumOfModules(); ++j)
                 {
-                    //int64_t timediff_slave = raw_result.timestamp_master_request_1_recv + raw_result.timestamp_master_request_2_recv - 2 * raw_result.timestamp_slave_reply_send;
                     int64_t timediff_slave = raw_result.timeDiffSlave;
                     // Calculation of the summand on the sending node/beacon
                     int64_t timediff_master = 2 * raw_result.timestamp_slave_reply[j] - raw_result.timestamp_master_request_1[j] - raw_result.timestamp_master_request_2[j];
@@ -176,7 +173,7 @@ void measureTimesOfFlight(UWB2WayMultiRange<NUM_OF_DW_UNITS>& tracker, MAVLinkBr
 #endif
 
 #if _DEBUG
-    wait_ms(1000);
+    wait_ms(13);
 #endif
 }
 
@@ -221,15 +218,12 @@ int main()
     }
 
     send_status_message(mb, "Initializing tracker with address %d", TRACKER_ADDRESS);
-    wait_ms(100);
-
-    UWB2WayMultiRange<NUM_OF_DW_UNITS> tracker(TRACKER_ADDRESS);
     
+    UWB2WayMultiRange<NUM_OF_DW_UNITS> tracker(TRACKER_ADDRESS);
     
     for (int i = 0; i < NUM_OF_DW_UNITS; ++i)
     { 
         tracker.addModule(&dw_array[i]);
-             
     }
 
       
@@ -237,7 +231,7 @@ int main()
     while (true)
     {
 
-            measureTimesOfFlight(tracker, mb, timer, 1.0);
+            measureTimesOfFlight(tracker, mb, timer);
 
     }
 }

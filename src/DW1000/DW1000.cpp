@@ -80,7 +80,6 @@ DW1000::DW1000(SPI& spi, PinName CS, PinName RESET, bool interruptIsInit)
     if(irq != NULL)
     	irq->enable_irq();
 
-    //resetAll();
     startRX();
 }
 
@@ -238,6 +237,8 @@ void DW1000::sendDelayedFrame(uint8_t* message, uint16_t length, uint64_t TxTime
     {
         TxTimestamp -= CONST_2POWER40;
     }
+
+    clearSentFlag();												//Sent flag must be cleared manually for delayed transmission
 
     //if (length >= 1021) length = 1021;                            // check for maximim length a frame can have with 1024 Byte frames [not used, see constructor]
     if (length >= 125) length = 125;                                // check for maximim length a frame can have with 127 Byte frames
