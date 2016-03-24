@@ -1,0 +1,1 @@
+pyocd-gdbserver -p3333 -tlpc1768

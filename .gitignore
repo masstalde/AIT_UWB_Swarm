@@ -1,0 +1,11 @@
+*.bin
+*.elf
+*.map
+*.hex
+*.*
+!*.gitignore
+
+/.hg
+/.settings
+/build/NXP/obj
+/build/STM32/obj
