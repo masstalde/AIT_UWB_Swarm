@@ -65,6 +65,9 @@ protected:
     struct __attribute__((packed, aligned(1))) ReportRangingFrame : RangingFrame
     {
         int64_t timediff_slave;
+        int64_t timestamp_master_request_1_recv;
+        int64_t timestamp_slave_reply_send;
+        int64_t timestamp_master_request_2_recv;
 #if SLAVE_REPLY_WITH_STATS
         ReceptionStats stats1;
         ReceptionStats stats2;
@@ -77,7 +80,11 @@ protected:
 
     void sendRangingFrame(DW1000* dw_ptr, uint8_t remote_address, uint8_t type);
     void sendDelayedRangingFrame(DW1000* dw_ptr, uint8_t remote_address, uint8_t type, uint64_t timestamp_send);
-    void sendReportFrame(DW1000* dw_ptr, uint8_t remote_address, int64_t timediff_slave);
+
+    void sendReportFrame(DW1000* dw_ptr, uint8_t remote_address, int64_t timediff_slave,
+    	    uint64_t timestamp_master_request_1_recv,
+    	    uint64_t timestamp_slave_reply_send,
+    	    uint64_t timestamp_master_request_2_recv);
 
     bool receiveAnyFrameBlocking(DW1000* dw_ptr, float timeout, uint64_t* timestamp_recv = NULL, ReceptionStats* stats = NULL);
 

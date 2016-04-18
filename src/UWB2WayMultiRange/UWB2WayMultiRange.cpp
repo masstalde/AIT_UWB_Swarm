@@ -189,6 +189,9 @@ const typename UWB2WayMultiRange<N>::RawRangingResult& UWB2WayMultiRange<N>::mea
     }
 
     raw_result_.timeDiffSlave = receivedFrame_.timediff_slave;
+    raw_result_.timestamp_master_request_1_recv = receivedFrame_.timestamp_master_request_1_recv;
+    raw_result_.timestamp_slave_reply_send = receivedFrame_.timestamp_slave_reply_send;
+    raw_result_.timestamp_master_request_2_recv = receivedFrame_.timestamp_master_request_2_recv;
 
 #if _DEBUG
 //    For debugging ranging only

@@ -2,8 +2,9 @@
 *.elf
 *.map
 *.hex
-*.*
-!*.gitignore
+.cproject
+.hgignore
+.project
 
 /.hg
 /.settings

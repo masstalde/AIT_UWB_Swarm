@@ -34,7 +34,7 @@ const bool USE_NLOS_SETTINGS = true;
 	const PinName DW_SCLK_PIN = p7;
     //const PinName DW_CS_PINS[NUM_OF_DW_UNITS] = {p8, p9, p10};
 #else ifdef NUCLEO_411RE
-    const int NUM_OF_DW_UNITS = 5;
+    const int NUM_OF_DW_UNITS = 4;
 	const PinName DW_RESET_PIN = D15;
 	const PinName DW_MOSI_PIN = D11;
 	const PinName DW_MISO_PIN = D12;
@@ -130,7 +130,8 @@ void measureTimesOfFlight(UWB2WayMultiRange<NUM_OF_DW_UNITS>& tracker, MAVLinkBr
             {
                 for (int j = 0; j < tracker.getNumOfModules(); ++j)
                 {
-                    int64_t timediff_slave = raw_result.timeDiffSlave;
+                    //int64_t timediff_slave = raw_result.timeDiffSlave;
+                    int64_t timediff_slave = -2*raw_result.timestamp_slave_reply_send + raw_result.timestamp_master_request_1_recv + raw_result.timestamp_master_request_2_recv;
                     // Calculation of the summand on the sending node/beacon
                     int64_t timediff_master = 2 * raw_result.timestamp_slave_reply[j] - raw_result.timestamp_master_request_1[j] - raw_result.timestamp_master_request_2[j];
                     // Calculation of the resulting sum of all four ToFs.
@@ -179,7 +180,7 @@ void measureTimesOfFlight(UWB2WayMultiRange<NUM_OF_DW_UNITS>& tracker, MAVLinkBr
 
 int main()
 {
-§    UART_Mbed uart(&pc);
+    UART_Mbed uart(&pc);
     MAVLinkBridge mb(&uart);
 
     send_status_message(mb, "==== AIT UWB Multi Range ====");
@@ -191,9 +192,9 @@ int main()
     timer.start();
 
 #ifdef MBED_LPC1768
-    DW1000 dw_array[NUM_OF_DW_UNITS]= {DW1000(spi, p8), DW1000(spi, p9), DW1000(spi, p10), DW1000(spi, p21)};
+    DW1000 dw_array[NUM_OF_DW_UNITS]= {DW1000(spi, p8), DW1000(spi, p9), DW1000(spi, p10), DW1000(spi, p11)};
 #else ifdef NUCLEO_411RE
-    DW1000 dw_array[NUM_OF_DW_UNITS]= {DW1000(spi, D14), DW1000(spi, D15), DW1000(spi, D9), DW1000(spi, D8), DW1000(spi, D10)};
+    DW1000 dw_array[NUM_OF_DW_UNITS]= {DW1000(spi, D15), DW1000(spi, D14), DW1000(spi, D9), DW1000(spi, D8)}; //, DW1000(spi, D10)};
 #endif
 
 
@@ -233,7 +234,7 @@ int main()
 
     while (true)
     {
-           // measureTimesOfFlight(tracker, mb, timer);
+           measureTimesOfFlight(tracker, mb, timer);
 
     }
 }

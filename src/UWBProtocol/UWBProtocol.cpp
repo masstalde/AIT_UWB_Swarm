@@ -29,12 +29,20 @@ void UWBProtocol::sendDelayedRangingFrame(DW1000* dw_ptr, uint8_t remote_address
     dw_ptr->sendDelayedFrame(reinterpret_cast<uint8_t*>(&rangingFrame_), sizeof(rangingFrame_), timestamp_send);
 }
 
-void UWBProtocol::sendReportFrame(DW1000* dw_ptr, uint8_t remote_address, int64_t timediff_slave)
+void UWBProtocol::sendReportFrame(DW1000* dw_ptr, uint8_t remote_address, int64_t timediff_slave,
+    uint64_t timestamp_master_request_1_recv,
+    uint64_t timestamp_slave_reply_send,
+    uint64_t timestamp_master_request_2_recv)
+//void UWBProtocol::sendReportFrame(DW1000* dw_ptr, uint8_t remote_address, int64_t timediff_slave)
 {
     reportFrame_.address = address_;
     reportFrame_.remote_address = remote_address;
     reportFrame_.type = SLAVE_REPORT;
     reportFrame_.timediff_slave = timediff_slave;
+    reportFrame_.timestamp_master_request_1_recv = timestamp_master_request_1_recv;
+    reportFrame_.timestamp_slave_reply_send = timestamp_slave_reply_send;
+    reportFrame_.timestamp_master_request_2_recv = timestamp_master_request_2_recv;
+    dw_ptr->clearSentFlag();
     dw_ptr->sendFrame(reinterpret_cast<uint8_t*>(&reportFrame_), sizeof(reportFrame_));
 }
 

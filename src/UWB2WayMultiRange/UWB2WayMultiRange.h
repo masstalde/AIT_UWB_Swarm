@@ -43,6 +43,10 @@ public:
         uint64_t timestamp_slave_reply[N];
         uint64_t timestamp_master_request_2[N];
 
+        uint64_t timestamp_master_request_1_recv;
+        uint64_t timestamp_slave_reply_send;
+        uint64_t timestamp_master_request_2_recv;
+
         uint64_t timeDiffSlave;
 
         std::vector<ReceptionStats> stats;

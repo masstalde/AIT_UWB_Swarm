@@ -21,12 +21,18 @@ const int SLAVE_ADDRESS = 10;
 
 const bool USE_NLOS_SETTINGS = true;
 
-const PinName DW_RESET_PIN = D15;
-const PinName DW_MOSI_PIN = D11;
-const PinName DW_MISO_PIN = D12;
-const PinName DW_SCLK_PIN = D13;
-const PinName DW_IRQ_PIN = D14;
-const PinName DW_CS_PIN = D10;
+//const PinName DW_RESET_PIN = D15;
+//const PinName DW_MOSI_PIN = D11;
+//const PinName DW_MISO_PIN = D12;
+//const PinName DW_SCLK_PIN = D13;
+//const PinName DW_IRQ_PIN = D14;
+//const PinName DW_CS_PIN = D10;
+
+const PinName DW_MOSI_PIN = p5;
+const PinName DW_MISO_PIN = p6;
+const PinName DW_SCLK_PIN = p7;
+const PinName DW_IRQ_PIN = p29;
+const PinName DW_CS_PIN = p8;
 
 BufferedSerial pc(USBTX, USBRX, 115200);           // USB UART Terminal
 
@@ -49,7 +55,7 @@ int main()
 
     pc.printf("Performing hardware reset of UWB modules\r\n");
     // == IMPORTANT == Create all DW objects first (this will cause a reset of the DW module)
-    DW1000::hardwareReset(DW_RESET_PIN);
+    //DW1000::hardwareReset(DW_RESET_PIN);
 
     // Initialize the DW module
     DW1000 dw(spi, &irq, DW_CS_PIN);
