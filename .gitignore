@@ -10,3 +10,4 @@
 /.settings
 /build/NXP/obj
 /build/STM32/obj
+/src/ait_link/.hg

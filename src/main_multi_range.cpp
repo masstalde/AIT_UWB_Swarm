@@ -6,17 +6,31 @@
 #include <mbed.h>
 #include <DW1000.h>
 #include <DW1000Utils.h>
-#include <mavlink_bridge/mavlink_bridge.h>
+
+//#include <mavlink_bridge/mavlink_bridge.h>
+
+#include <ait_link/uwb_link/uwb_link_impl.h>
+
 
 #include "BufferedSerial.h"
 #include "UWB2WayMultiRange.h"
+
+enum CommMode {
+    ASCII,
+    UWBLINK
+};
+
 
 using ait::UWB2WayMultiRange;
 
 //#define MEASURE_UWB_RANGING_RATE 1
 
-using ait::MAVLinkBridge;
-using ait::UART_Mbed;
+using ait::UWBLink;
+using ait::UWBLinkMbed;
+using ait::UWBMessageString;
+using ait::UWBMessageMultiRange;
+using ait::UWBMessage;
+
 
 const int SPI_FREQUENCY = 5000000;
 
@@ -42,33 +56,35 @@ const bool USE_NLOS_SETTINGS = true;
     //const PinName DW_CS_PINS[NUM_OF_DW_UNITS] = {D7, D9, D10};
 #endif
 
-const int MAX_NUM_OF_DW_UNITS = 4;
+const int MAX_UWB_LINK_FRAME_LENGTH = 1024;
+
 #if _DEBUG
-    const bool MAVLINK_COMM = false;
+	CommMode comm_mode = ASCII;
 #else
-    const bool MAVLINK_COMM = true;
-    const int NUM_OF_DW_UNITS = 4;
-    const PinName DW_CS_PINS[NUM_OF_DW_UNITS] = {D7, D8, D9, D10};
+	CommMode comm_mode = UWBLINK;
 #endif
 
 
 BufferedSerial pc(USBTX, USBRX, 115200, 8 * 1024);           // USB UART Terminal
 SPI spi(DW_MOSI_PIN, DW_MISO_PIN, DW_SCLK_PIN);
+UWBLinkMbed ul(&pc, MAX_UWB_LINK_FRAME_LENGTH);
 
-void send_status_message(MAVLinkBridge& mb, char* str, ...)
+void send_status_message(UWBLink& ul, char* str, ...)
 {
     va_list args;
     va_start(args, str);
-    if (MAVLINK_COMM) {
-        char buffer[MAVLINK_MSG_UWB_STATUS_FIELD_DESCRIPTION_LEN];
+    if (comm_mode == UWBLINK) {
+        char buffer[MAX_UWB_LINK_FRAME_LENGTH];
         int n = vsnprintf(buffer, sizeof(buffer), str, args);
         if(n > sizeof(buffer)) {
-            send_status_message(mb, "%s %d buffer to small (buf_size: %d, required: %d)!\r\n", __FILE__, __LINE__, sizeof(buffer), n);
+            // Dangerous: Could lead to infinite recursion
+            send_status_message(ul, "%s %d buffer to small (buf_size: %d, required: %d)!\r\n", __FILE__, __LINE__, sizeof(buffer), n);
         } else {
-            // Pack and send message
-            mavlink_message_t msg;
-            mavlink_msg_uwb_status_pack(mb.getSysId(), mb.getCompId(), &msg, -1, buffer);
-            mb.sendMessage(msg);
+            UWBMessageString msg_str(buffer);
+            UWBMessage msg(UWBMessage::UWB_MESSAGE_TYPE_STATUS, &msg_str);
+            if (!ul.sendMessage(msg)) {
+                DEBUG_PRINTF("\r\nSending UWBLink message failed\r\n");
+            }
         }
     } else {
         pc.printf(str, args);
@@ -77,7 +93,8 @@ void send_status_message(MAVLinkBridge& mb, char* str, ...)
     va_end(args);
 }
 
-void measureTimesOfFlight(UWB2WayMultiRange<NUM_OF_DW_UNITS>& tracker, MAVLinkBridge& mb, Timer& timer, float ranging_timeout = 0.1f)
+
+bool measureTimesOfFlight(UWB2WayMultiRange<NUM_OF_DW_UNITS>& tracker, UWBLink& ul, Timer& timer, float ranging_timeout = 0.1f)
 {
 #if _DEBUG
     int time_begin_us = timer.read_us();
@@ -88,50 +105,29 @@ void measureTimesOfFlight(UWB2WayMultiRange<NUM_OF_DW_UNITS>& tracker, MAVLinkBr
     static uint32_t last_stamp_us = timer.read_us();
 #endif
 
-    for (int i = 0; i < NUM_OF_SLAVES; i++)
-    {
+    bool any_success = false;
+    for (int i = 0; i < NUM_OF_SLAVES; i++) {
         uint8_t remote_address = SLAVE_ADDRESS_OFFSET + i;
         const typename UWB2WayMultiRange<NUM_OF_DW_UNITS>::RawRangingResult& raw_result = tracker.measureTimesOfFlight(remote_address, ranging_timeout);
-        if (raw_result.status == UWB2WayMultiRange<NUM_OF_DW_UNITS>::SUCCESS)
-        {
-            if (MAVLINK_COMM)
-            {
-                uint64_t timestamp_master_request_1[MAX_NUM_OF_DW_UNITS];
-                uint64_t timestamp_slave_reply[MAX_NUM_OF_DW_UNITS];
-                uint64_t timestamp_master_request_2[MAX_NUM_OF_DW_UNITS];
-                for (int j = 0; j < tracker.getNumOfModules(); ++j)
-                {
-                    timestamp_master_request_1[j] = raw_result.timestamp_master_request_1[j];
-                    timestamp_slave_reply[j] = raw_result.timestamp_slave_reply[j];
-                    timestamp_master_request_2[j] = raw_result.timestamp_master_request_2[j];
-                }
-                for (int j = tracker.getNumOfModules(); j < MAX_NUM_OF_DW_UNITS; ++j)
-                {
-                    timestamp_master_request_1[j] = 0;
-                    timestamp_slave_reply[j] = 0;
-                    timestamp_master_request_2[j] = 0;
+        if (raw_result.status == UWB2WayMultiRange<NUM_OF_DW_UNITS>::SUCCESS) {
+            any_success = true;
+            if (comm_mode == UWBLINK) {
+
+            	UWBMessageMultiRange msg_multi_range(tracker.getAddress(), remote_address);
+
+                for (int j = 0; j < tracker.getNumOfModules(); ++j) {
+                    msg_multi_range.addModuleMeasurement(raw_result.timestamp_master_request_1[j], raw_result.timestamp_slave_reply[j], raw_result.timestamp_master_request_2[j]);
                 }
 
-                // Pack and send message
-                mavlink_message_t msg;
-                mavlink_msg_uwb_2way_multi_range_raw_4_pack(
-                    mb.getSysId(), mb.getCompId(), &msg,
-                    tracker.getNumOfModules(),
-                    tracker.getAddress(),
-                    remote_address,
-                    raw_result.timeDiffSlave,
-                    timestamp_master_request_1,
-                    timestamp_slave_reply,
-                    timestamp_master_request_2
-                );
-                mb.sendMessage(msg);
-            }
-            else
-            {
-                for (int j = 0; j < tracker.getNumOfModules(); ++j)
-                {
-                    //int64_t timediff_slave = raw_result.timeDiffSlave;
-                    int64_t timediff_slave = -2*raw_result.timestamp_slave_reply_send + raw_result.timestamp_master_request_1_recv + raw_result.timestamp_master_request_2_recv;
+
+                msg_multi_range.setSlaveMeasurement(raw_result.timestamp_master_request_1_recv, raw_result.timestamp_slave_reply_send, raw_result.timestamp_master_request_2_recv);
+                UWBMessage msg(UWBMessage::UWB_MESSAGE_TYPE_MULTI_RANGE, &msg_multi_range);
+                if (!ul.sendMessage(msg)) {
+                    ERROR_PRINTF("\r\nSending UWBLink message failed\r\n");
+                }
+            } else {
+                for (int j = 0; j < tracker.getNumOfModules(); ++j) {
+                    int64_t timediff_slave = raw_result.timestamp_master_request_1_recv + raw_result.timestamp_master_request_2_recv - 2 * raw_result.timestamp_slave_reply_send;
                     // Calculation of the summand on the sending node/beacon
                     int64_t timediff_master = 2 * raw_result.timestamp_slave_reply[j] - raw_result.timestamp_master_request_1[j] - raw_result.timestamp_master_request_2[j];
                     // Calculation of the resulting sum of all four ToFs.
@@ -139,13 +135,11 @@ void measureTimesOfFlight(UWB2WayMultiRange<NUM_OF_DW_UNITS>& tracker, MAVLinkBr
                     float tof = tracker.convertDWTimeunitsToMicroseconds(timediff) / 4.0f;
                     float range = tracker.convertTimeOfFlightToDistance(tof);
 
-                    send_status_message(mb, "%d.%d - %d> range = %.2f, tof = %.2e", tracker.getAddress(), j, remote_address, range, tof);
+                    send_status_message(ul, "%d.%d - %d> range = %.2f, tof = %.2e", tracker.getAddress(), j, remote_address, range, tof);
                 }
             }
-        }
-        else
-        {
-            send_status_message(mb, "Ranging failed: %s - %s", UWB2WayMultiRange<NUM_OF_DW_UNITS>::RANGING_STATUS_MESSAGES[raw_result.status], raw_result.status_description);
+        } else {
+            send_status_message(ul, "Ranging failed: %s - %s", UWB2WayMultiRange<NUM_OF_DW_UNITS>::RANGING_STATUS_MESSAGES[raw_result.status], raw_result.status_description);
         }
 #if MEASURE_UWB_RANGING_RATE
         ++range_counter;
@@ -158,8 +152,8 @@ void measureTimesOfFlight(UWB2WayMultiRange<NUM_OF_DW_UNITS>& tracker, MAVLinkBr
     if (dt_us > 2 * 1000 * 1000)
     {
         float rate = 1000 * 1000 * range_counter / ((float)dt_us);
-        send_status_message(mb, "Rate = %f.2Hz", rate);
-        send_status_message(mb, "range_counter = %d, stamp_us = %u, last_stamp_us = %u", range_counter, now_stamp_us, last_stamp_us);
+        send_status_message(ul, "Rate = %f.2Hz", rate);
+        send_status_message(ul, "range_counter = %d, stamp_us = %u, last_stamp_us = %u", range_counter, now_stamp_us, last_stamp_us);
         range_counter = 0;
         last_stamp_us = now_stamp_us;
     }
@@ -176,14 +170,16 @@ void measureTimesOfFlight(UWB2WayMultiRange<NUM_OF_DW_UNITS>& tracker, MAVLinkBr
 #if _DEBUG
     wait_ms(1000);
 #endif
+
+    return any_success;
 }
 
 int main()
 {
-    UART_Mbed uart(&pc);
-    MAVLinkBridge mb(&uart);
 
-    send_status_message(mb, "==== AIT UWB Multi Range ====");
+	UWBLinkMbed ul(&pc, MAX_UWB_LINK_FRAME_LENGTH);
+
+    send_status_message(ul, "==== AIT UWB Multi Range ====");
 
     spi.format(8, 0);                    // Setup the spi for standard 8 bit data and SPI-Mode 0
     spi.frequency(SPI_FREQUENCY);
@@ -203,25 +199,25 @@ int main()
     {
     	dw_array[i].setEUI(0xFAEDCD01FAEDCD01 + i);                                  // basic methods called to check if we have a working SPI connection
 
-        send_status_message(mb, "\r\nUnit %d", i);       
-        send_status_message(mb, "\r\nDecaWave 1.0 up and running!");            // Splashscreen
-        send_status_message(mb, "DEVICE_ID register: 0x%X", dw_array[i].getDeviceID());
+        send_status_message(ul, "\r\nUnit %d", i);
+        send_status_message(ul, "\r\nDecaWave 1.0 up and running!");            // Splashscreen
+        send_status_message(ul, "DEVICE_ID register: 0x%X", dw_array[i].getDeviceID());
 
         uint32_t euiLSB = dw_array[i].getEUI();
         uint32_t euiMSB = dw_array[i].getEUI() >> 32;
-        send_status_message(mb, "EUI register: 0x%X%X", euiMSB, euiLSB);
-        send_status_message(mb, "Voltage: %.2fV\r\n", dw_array[i].getVoltage());
+        send_status_message(ul, "EUI register: 0x%X%X", euiMSB, euiLSB);
+        //send_status_message(ul, "Voltage: %.2fV\r\n", dw_array[i].getVoltage());
         
         // Set NLOS settings (According to DecaWave Application Note APS006)
         if (USE_NLOS_SETTINGS)
         {
-            send_status_message(mb, "Setting NLOS configuration for Unit %d", i);
+            send_status_message(ul, "Setting NLOS configuration for Unit %d", i);
             DW1000Utils::setNLOSSettings(&dw_array[i], DATA_RATE_SETTING, PRF_SETTING, PREAMBLE_SETTING);
             
         }
     }
 
-    send_status_message(mb, "Initializing tracker with address %d", TRACKER_ADDRESS);
+    send_status_message(ul, "Initializing tracker with address %d", TRACKER_ADDRESS);
     
     UWB2WayMultiRange<NUM_OF_DW_UNITS> tracker(TRACKER_ADDRESS);
     
@@ -234,7 +230,7 @@ int main()
 
     while (true)
     {
-           measureTimesOfFlight(tracker, mb, timer);
+           measureTimesOfFlight(tracker, ul, timer);
 
     }
 }
