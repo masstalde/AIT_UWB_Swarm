@@ -72,6 +72,9 @@ const typename UWB2WayMultiRange<N>::RawRangingResult& UWB2WayMultiRange<N>::mea
     raw_result_.status = OTHER;
     strcpy(raw_result_.status_description, "");
 
+    raw_result_.remote_address = remote_address;
+    raw_result_.tracker_address = this->getAddress();
+
     DW1000* primary_dw = dw_array_[0];
     
 

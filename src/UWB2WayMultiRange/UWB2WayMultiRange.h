@@ -36,8 +36,8 @@ public:
         {
         }
 
-        float primary_tof;
-        float primary_range;
+        uint8_t tracker_address;
+        uint8_t remote_address;
 
         uint64_t timestamp_master_request_1[N];
         uint64_t timestamp_slave_reply[N];
