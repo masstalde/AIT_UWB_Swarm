@@ -65,7 +65,7 @@ const int MAX_UWB_LINK_FRAME_LENGTH = 1024;
 #endif
 
 
-BufferedSerial pc(USBTX, USBRX, 115200, 8 * 1024);           // USB UART Terminal
+BufferedSerial pc(USBTX, USBRX, 115200, 1024);           // USB UART Terminal
 SPI spi(DW_MOSI_PIN, DW_MISO_PIN, DW_SCLK_PIN);
 UWBLinkMbed ul(&pc, MAX_UWB_LINK_FRAME_LENGTH);
 
@@ -177,8 +177,6 @@ bool measureTimesOfFlight(UWB2WayMultiRange<NUM_OF_DW_UNITS>& tracker, UWBLink& 
 int main()
 {
 
-	UWBLinkMbed ul(&pc, MAX_UWB_LINK_FRAME_LENGTH);
-
     send_status_message(ul, "==== AIT UWB Multi Range ====");
 
     spi.format(8, 0);                    // Setup the spi for standard 8 bit data and SPI-Mode 0
@@ -207,30 +205,30 @@ int main()
         uint32_t euiMSB = dw_array[i].getEUI() >> 32;
         send_status_message(ul, "EUI register: 0x%X%X", euiMSB, euiLSB);
         //send_status_message(ul, "Voltage: %.2fV\r\n", dw_array[i].getVoltage());
-        
+
         // Set NLOS settings (According to DecaWave Application Note APS006)
         if (USE_NLOS_SETTINGS)
         {
             send_status_message(ul, "Setting NLOS configuration for Unit %d", i);
             DW1000Utils::setNLOSSettings(&dw_array[i], DATA_RATE_SETTING, PRF_SETTING, PREAMBLE_SETTING);
-            
+
         }
     }
 
     send_status_message(ul, "Initializing tracker with address %d", TRACKER_ADDRESS);
-    
+
     UWB2WayMultiRange<NUM_OF_DW_UNITS> tracker(TRACKER_ADDRESS);
-    
+
     for (int i = 0; i < NUM_OF_DW_UNITS; ++i)
-    { 
+    {
         tracker.addModule(&dw_array[i]);
     }
 
-      
-
     while (true)
     {
-           measureTimesOfFlight(tracker, ul, timer);
+
+    	measureTimesOfFlight(tracker, ul, timer);
+
 
     }
 }
