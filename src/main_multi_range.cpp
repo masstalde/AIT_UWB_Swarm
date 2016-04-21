@@ -70,8 +70,8 @@ SPI spi(DW_MOSI_PIN, DW_MISO_PIN, DW_SCLK_PIN);
 UWBLinkMbed ul(&pc, MAX_UWB_LINK_FRAME_LENGTH);
 
 void send_status_message(UWBLink& ul, char* str, ...);
-void printDistancesToConsole(UWB2WayMultiRange<NUM_OF_DW_UNITS>& tracker, const UWB2WayMultiRange<NUM_OF_DW_UNITS>::RawRangingResult& raw_result);
-bool measureTimesOfFlight(UWB2WayMultiRange<NUM_OF_DW_UNITS>& tracker, UWBLink& ul, Timer& timer, float ranging_timeout = 0.1f);
+void printDistancesToConsole(UWB2WayMultiRange& tracker, const UWB2WayMultiRange::RawRangingResult& raw_result);
+bool measureTimesOfFlight(UWB2WayMultiRange& tracker, UWBLink& ul, Timer& timer, float ranging_timeout = 0.1f);
 
 int main()
 {
@@ -116,7 +116,7 @@ int main()
 
     send_status_message(ul, "Initializing tracker with address %d", TRACKER_ADDRESS);
 
-    UWB2WayMultiRange<NUM_OF_DW_UNITS> tracker(TRACKER_ADDRESS);
+    UWB2WayMultiRange tracker(TRACKER_ADDRESS);
 
     for (int i = 0; i < NUM_OF_DW_UNITS; ++i)
     {
@@ -128,7 +128,7 @@ int main()
 
     	//measureTimesOfFlight(tracker, ul, timer);
 
-       const typename UWB2WayMultiRange<NUM_OF_DW_UNITS>::RawRangingResult& raw_result = tracker.measureTimesOfFlight(SLAVE_ADDRESS_OFFSET);
+       const UWB2WayMultiRange::RawRangingResult& raw_result = tracker.measureTimesOfFlight(SLAVE_ADDRESS_OFFSET);
 
        if (raw_result.status == 0)
     	   printDistancesToConsole(tracker, raw_result);
@@ -139,7 +139,7 @@ int main()
     }
 }
 
-void printDistancesToConsole(UWB2WayMultiRange<NUM_OF_DW_UNITS>& tracker, const UWB2WayMultiRange<NUM_OF_DW_UNITS>::RawRangingResult& raw_result){
+void printDistancesToConsole(UWB2WayMultiRange& tracker, const UWB2WayMultiRange::RawRangingResult& raw_result){
 
 	pc.printf("Measurement Results for %i ----> %i \r\n", raw_result.tracker_address, raw_result.remote_address);
 
@@ -181,7 +181,7 @@ void send_status_message(UWBLink& ul, char* str, ...)
     va_end(args);
 }
 
-bool measureTimesOfFlight(UWB2WayMultiRange<NUM_OF_DW_UNITS>& tracker, UWBLink& ul, Timer& timer, float ranging_timeout)
+bool measureTimesOfFlight(UWB2WayMultiRange& tracker, UWBLink& ul, Timer& timer, float ranging_timeout)
 {
 #if _DEBUG
     int time_begin_us = timer.read_us();
@@ -195,8 +195,8 @@ bool measureTimesOfFlight(UWB2WayMultiRange<NUM_OF_DW_UNITS>& tracker, UWBLink& 
     bool any_success = false;
     for (int i = 0; i < NUM_OF_SLAVES; i++) {
         uint8_t remote_address = SLAVE_ADDRESS_OFFSET + i;
-        const typename UWB2WayMultiRange<NUM_OF_DW_UNITS>::RawRangingResult& raw_result = tracker.measureTimesOfFlight(remote_address, ranging_timeout);
-        if (raw_result.status == UWB2WayMultiRange<NUM_OF_DW_UNITS>::SUCCESS) {
+        const UWB2WayMultiRange::RawRangingResult& raw_result = tracker.measureTimesOfFlight(remote_address, ranging_timeout);
+        if (raw_result.status == UWB2WayMultiRange::SUCCESS) {
             any_success = true;
             if (comm_mode == UWBLINK) {
 
@@ -226,7 +226,7 @@ bool measureTimesOfFlight(UWB2WayMultiRange<NUM_OF_DW_UNITS>& tracker, UWBLink& 
                 }
             }
         } else {
-            send_status_message(ul, "Ranging failed: %s - %s", UWB2WayMultiRange<NUM_OF_DW_UNITS>::RANGING_STATUS_MESSAGES[raw_result.status], raw_result.status_description);
+            send_status_message(ul, "Ranging failed: %s - %s", UWB2WayMultiRange::RANGING_STATUS_MESSAGES[raw_result.status], raw_result.status_description);
         }
 #if MEASURE_UWB_RANGING_RATE
         ++range_counter;

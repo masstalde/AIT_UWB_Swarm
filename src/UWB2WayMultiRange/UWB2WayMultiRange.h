@@ -11,7 +11,6 @@
 namespace ait
 {
 
-template <size_t N>
 class UWB2WayMultiRange : public UWBProtocol
 {
 public:
@@ -32,16 +31,16 @@ public:
     struct RawRangingResult
     {
         RawRangingResult()
-        : status(OTHER)
+        : status(OTHER), tracker_address(0), remote_address(0), timeDiffSlave(0)
         {
         }
 
         uint8_t tracker_address;
         uint8_t remote_address;
 
-        uint64_t timestamp_master_request_1[N];
-        uint64_t timestamp_slave_reply[N];
-        uint64_t timestamp_master_request_2[N];
+        std::vector<uint64_t> timestamp_master_request_1;
+        std::vector<uint64_t> timestamp_slave_reply;
+        std::vector<uint64_t> timestamp_master_request_2;
 
         uint64_t timestamp_master_request_1_recv;
         uint64_t timestamp_slave_reply_send;
@@ -68,6 +67,7 @@ public:
 //    };
 
     UWB2WayMultiRange(uint8_t address);
+    ~UWB2WayMultiRange();
 
     void addModule(DW1000* dw_ptr);
 
@@ -83,7 +83,7 @@ public:
     float convertTimeOfFlightToDistance(float tof) const;
 
 protected:
-    DW1000* dw_array_[N];
+    std::vector<DW1000*> dw_vector_;
     uint8_t moduleCounter;
     RawRangingResult raw_result_;			//    RangingResult result_;
 
@@ -93,5 +93,3 @@ protected:
 };
 
 }
-
-#include "UWB2WayMultiRange.cpp"

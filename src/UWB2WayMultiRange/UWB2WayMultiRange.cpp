@@ -3,8 +3,7 @@
 
 using ait::UWB2WayMultiRange;
 
-template <size_t N>
-const char* const UWB2WayMultiRange<N>::RANGING_STATUS_MESSAGES[] = {
+const char* const UWB2WayMultiRange::RANGING_STATUS_MESSAGES[] = {
     "SUCCESS",
     "NO_MASTER_REQUEST_1",
     "NO_SLAVE_REPLY",
@@ -13,61 +12,61 @@ const char* const UWB2WayMultiRange<N>::RANGING_STATUS_MESSAGES[] = {
     "OTHER",
 };
 
-template <size_t N>
-UWB2WayMultiRange<N>::UWB2WayMultiRange(uint8_t address)
-: UWBProtocol(address)
+UWB2WayMultiRange::UWB2WayMultiRange(uint8_t address)
+: UWBProtocol(address), moduleCounter(0)
 {
     timer_.start();
-    moduleCounter = 0;
+
+};
+
+UWB2WayMultiRange::~UWB2WayMultiRange() {
+	raw_result_.timestamp_master_request_1.clear();
+	raw_result_.timestamp_master_request_2.clear();
+	raw_result_.timestamp_slave_reply.clear();
+
+	dw_vector_.clear();
 }
 
-template <size_t N>
-void UWB2WayMultiRange<N>::addModule(DW1000* dw_ptr)
+void UWB2WayMultiRange::addModule(DW1000* dw_ptr)
 {
  
-    dw_array_[moduleCounter] = dw_ptr;
+    dw_vector_.push_back(dw_ptr);
 
     //result_.stats.push_back(ReceptionStats());
-    raw_result_.timestamp_master_request_1[moduleCounter] = 0;
-    raw_result_.timestamp_slave_reply[moduleCounter] = 0;
-    raw_result_.timestamp_master_request_2[moduleCounter] = 0;
+    raw_result_.timestamp_master_request_1.push_back(0);
+    raw_result_.timestamp_slave_reply.push_back(0);
+    raw_result_.timestamp_master_request_2.push_back(0);
     //raw_result_.stats.push_back(ReceptionStats());
 
     moduleCounter++;
 }
 
-template <size_t N>
-int UWB2WayMultiRange<N>::getNumOfModules() const
+int UWB2WayMultiRange::getNumOfModules() const
 {
-	return (int)N;
+	return moduleCounter;
 }
 
-template <size_t N>
-const DW1000* UWB2WayMultiRange<N>::getModule(int module_index) const
+const DW1000* UWB2WayMultiRange::getModule(int module_index) const
 {
-    return dw_array_[module_index];
+    return dw_vector_.at(module_index);
 }
 
-template <size_t N>
-DW1000* UWB2WayMultiRange<N>::getModule(int module_index)
+DW1000* UWB2WayMultiRange::getModule(int module_index)
 {
-    return dw_array_[module_index];
+    return dw_vector_.at(module_index);
 }
 
-template <size_t N>
-bool UWB2WayMultiRange<N>::receiveFramesBlocking(std::vector<DW1000*>& dw_array, float timeout, uint64_t* timestamp_recv, ReceptionStats* stats)
+bool UWB2WayMultiRange::receiveFramesBlocking(std::vector<DW1000*>& dw_array, float timeout, uint64_t* timestamp_recv, ReceptionStats* stats)
 {
     return true;
 }
 
-template <size_t N>
-bool UWB2WayMultiRange<N>::receiveFramesBlocking(std::vector<DW1000*>& dw_array, uint8_t type, float timeout, uint64_t* timestamp_recv, ReceptionStats* stats)
+bool UWB2WayMultiRange::receiveFramesBlocking(std::vector<DW1000*>& dw_array, uint8_t type, float timeout, uint64_t* timestamp_recv, ReceptionStats* stats)
 {
     return true;
 }
 
-template <size_t N>
-const typename UWB2WayMultiRange<N>::RawRangingResult& UWB2WayMultiRange<N>::measureTimesOfFlight(uint8_t remote_address, float timeout, ReceptionStats* stats)
+const UWB2WayMultiRange::RawRangingResult& UWB2WayMultiRange::measureTimesOfFlight(uint8_t remote_address, float timeout, ReceptionStats* stats)
 {
     raw_result_.status = OTHER;
     strcpy(raw_result_.status_description, "");
@@ -75,7 +74,7 @@ const typename UWB2WayMultiRange<N>::RawRangingResult& UWB2WayMultiRange<N>::mea
     raw_result_.remote_address = remote_address;
     raw_result_.tracker_address = this->getAddress();
 
-    DW1000* primary_dw = dw_array_[0];
+    DW1000* primary_dw = dw_vector_.front();
     
 
     ReceptionStats* stats1;
@@ -94,10 +93,10 @@ const typename UWB2WayMultiRange<N>::RawRangingResult& UWB2WayMultiRange<N>::mea
     
     // Reset transmitter on all modules, start receiver
     //WAIT AFTER!!! (No idea why)
-    for (int i = 0; i < N; ++i)
+    for (int i = 0; i < moduleCounter; ++i)
     {
-        dw_array_[i]->stopTRX();
-        dw_array_[i]->startRX();
+        dw_vector_.at(i)->stopTRX();
+        dw_vector_.at(i)->startRX();
     }
     wait_us(100);
 
@@ -105,7 +104,7 @@ const typename UWB2WayMultiRange<N>::RawRangingResult& UWB2WayMultiRange<N>::mea
 
     // Sending Master Request 1, RX is re-enabled!
     //DEBUG_PRINTF_VA("Sending master request 1 to address %d...\r\n", remote_address);
-    bool send_status = sendRangingFrameBlocking(primary_dw, remote_address, MASTER_REQUEST_1, timeout_time - timer_.read(), &raw_result_.timestamp_master_request_1[0]);
+    bool send_status = sendRangingFrameBlocking(primary_dw, remote_address, MASTER_REQUEST_1, timeout_time - timer_.read(), &raw_result_.timestamp_master_request_1.at(0));
     if (!send_status)
     {
         ERROR_PRINTF("Unable to send master request 1 within timeout\r\n");
@@ -115,9 +114,9 @@ const typename UWB2WayMultiRange<N>::RawRangingResult& UWB2WayMultiRange<N>::mea
     
     //Receive Master Request 1 on secondary Modules
     //DEBUG_PRINTF("Waiting for master request 1 on secondaries ...\r\n");
-    for (int i = 1; i < N; ++i)
+    for (int i = 1; i < moduleCounter; ++i)
     {
-        bool recv_status = receiveMasterFrameBlocking(dw_array_[i], remote_address, MASTER_REQUEST_1, timeout_time - timer_.read(), &raw_result_.timestamp_master_request_1[i], NULL);
+        bool recv_status = receiveMasterFrameBlocking(dw_vector_.at(i), remote_address, MASTER_REQUEST_1, timeout_time - timer_.read(), &raw_result_.timestamp_master_request_1.at(i), NULL);
         if (!recv_status)
         {
             ERROR_PRINTF_VA("Unable to receive master request 1 on secondary module %d reply within timeout\r\n", i);
@@ -130,7 +129,7 @@ const typename UWB2WayMultiRange<N>::RawRangingResult& UWB2WayMultiRange<N>::mea
 
     // Waiting for slave reply on Master - RX is re-enabled after every received frame!
     //DEBUG_PRINTF("Waiting for slave reply ...\r\n");
-    bool recv_status = receiveSlaveFrameBlocking(primary_dw, SLAVE_REPLY, timeout_time - timer_.read(), &raw_result_.timestamp_slave_reply[0], stats1);
+    bool recv_status = receiveSlaveFrameBlocking(primary_dw, SLAVE_REPLY, timeout_time - timer_.read(), &raw_result_.timestamp_slave_reply.at(0), stats1);
     if (!recv_status)
     {
         ERROR_PRINTF("Unable to receive slave reply on Master within timeout\r\n");
@@ -139,9 +138,9 @@ const typename UWB2WayMultiRange<N>::RawRangingResult& UWB2WayMultiRange<N>::mea
     }
 
     //Receive slave reply on secondary modules
-    for (int i = 1; i < N; i++)
+    for (int i = 1; i < moduleCounter; i++)
     {
-        bool recv_status = receiveSlaveFrameBlocking(dw_array_[i], SLAVE_REPLY, timeout_time - timer_.read(), &raw_result_.timestamp_slave_reply[i], NULL);
+        bool recv_status = receiveSlaveFrameBlocking(dw_vector_.at(i), SLAVE_REPLY, timeout_time - timer_.read(), &raw_result_.timestamp_slave_reply.at(i), NULL);
         if (!recv_status)
         {
             ERROR_PRINTF_VA("Unable to receive slave reply on secondary module %d reply within timeout\r\n", i);
@@ -154,8 +153,8 @@ const typename UWB2WayMultiRange<N>::RawRangingResult& UWB2WayMultiRange<N>::mea
 
     // Sending master request 2
     //Calculate the timestamp for the transmission based on the reception timestamp.
-    raw_result_.timestamp_master_request_2[0] = raw_result_.timestamp_slave_reply[0] + ANSWER_DELAY_TIMEUNITS;
-    send_status = sendDelayedRangingFrameBlocking(primary_dw, remote_address, MASTER_REQUEST_2, timeout_time - timer_.read(), &raw_result_.timestamp_master_request_2[0]);
+    raw_result_.timestamp_master_request_2.at(0) = raw_result_.timestamp_slave_reply[0] + ANSWER_DELAY_TIMEUNITS;
+    send_status = sendDelayedRangingFrameBlocking(primary_dw, remote_address, MASTER_REQUEST_2, timeout_time - timer_.read(), &raw_result_.timestamp_master_request_2.at(0));
     if (!send_status)
     {
         ERROR_PRINTF("Unable to send master request 2 within timeout\r\n");
@@ -164,9 +163,9 @@ const typename UWB2WayMultiRange<N>::RawRangingResult& UWB2WayMultiRange<N>::mea
     }
 
     //Receiving master request 2 on secondary modules
-    for (int i = 1; i < N; ++i)
+    for (int i = 1; i < moduleCounter; ++i)
     {
-        bool recv_status = receiveMasterFrameBlocking(dw_array_[i], remote_address, MASTER_REQUEST_2, timeout_time - timer_.read(), &raw_result_.timestamp_master_request_2[i], NULL);
+        bool recv_status = receiveMasterFrameBlocking(dw_vector_.at(i), remote_address, MASTER_REQUEST_2, timeout_time - timer_.read(), &raw_result_.timestamp_master_request_2.at(i), NULL);
         if (!recv_status)
         {
             ERROR_PRINTF_VA("Unable to receive master request 2 on secondary module %d reply within timeout\r\n", i);
@@ -177,9 +176,9 @@ const typename UWB2WayMultiRange<N>::RawRangingResult& UWB2WayMultiRange<N>::mea
         //DEBUG_PRINTF_VA("timestamp_master_request_2[%d]: %lu\r\n", i, raw_result_.timestamp_master_request_2[i]);
     }
 
-    for (int i = 0; i < N; ++i)
+    for (int i = 0; i < moduleCounter; ++i)
     {
-        correctTimestamps(&raw_result_.timestamp_master_request_1[i], &raw_result_.timestamp_slave_reply[i], &raw_result_.timestamp_master_request_2[i]);
+        correctTimestamps(&raw_result_.timestamp_master_request_1.at(i), &raw_result_.timestamp_slave_reply.at(i), &raw_result_.timestamp_master_request_2.at(i));
     }
 
     // Waiting for slave report
@@ -391,15 +390,13 @@ const typename UWB2WayMultiRange<N>::RawRangingResult& UWB2WayMultiRange<N>::mea
 //    return result_;
 //}
 
-template <size_t N>
-float UWB2WayMultiRange<N>::convertDWTimeunitsToMicroseconds(int64_t dw_timeunits) const
+float UWB2WayMultiRange::convertDWTimeunitsToMicroseconds(int64_t dw_timeunits) const
 {
     float time_us = dw_timeunits * DW1000::TIMEUNITS_TO_US;
     return time_us;
 }
 
-template <size_t N>
-float UWB2WayMultiRange<N>::convertTimeOfFlightToDistance(float tof) const
+float UWB2WayMultiRange::convertTimeOfFlightToDistance(float tof) const
 {
     float distance = SPEED_OF_LIGHT_IN_M_PER_US * tof;
     return distance;
