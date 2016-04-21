@@ -13,7 +13,7 @@ const char* const UWB2WayMultiRange::RANGING_STATUS_MESSAGES[] = {
 };
 
 UWB2WayMultiRange::UWB2WayMultiRange(uint8_t address)
-: UWBProtocol(address), moduleCounter(0)
+: UWBProtocol(address), moduleCounter_(0)
 {
     timer_.start();
 
@@ -38,12 +38,12 @@ void UWB2WayMultiRange::addModule(DW1000* dw_ptr)
     raw_result_.timestamp_master_request_2.push_back(0);
     //raw_result_.stats.push_back(ReceptionStats());
 
-    moduleCounter++;
+    moduleCounter_++;
 }
 
 int UWB2WayMultiRange::getNumOfModules() const
 {
-	return moduleCounter;
+	return moduleCounter_;
 }
 
 const DW1000* UWB2WayMultiRange::getModule(int module_index) const
@@ -93,7 +93,7 @@ const UWB2WayMultiRange::RawRangingResult& UWB2WayMultiRange::measureTimesOfFlig
     
     // Reset transmitter on all modules, start receiver
     //WAIT AFTER!!! (No idea why)
-    for (int i = 0; i < moduleCounter; ++i)
+    for (int i = 0; i < moduleCounter_; ++i)
     {
         dw_vector_.at(i)->stopTRX();
         dw_vector_.at(i)->startRX();
@@ -114,7 +114,7 @@ const UWB2WayMultiRange::RawRangingResult& UWB2WayMultiRange::measureTimesOfFlig
     
     //Receive Master Request 1 on secondary Modules
     //DEBUG_PRINTF("Waiting for master request 1 on secondaries ...\r\n");
-    for (int i = 1; i < moduleCounter; ++i)
+    for (int i = 1; i < moduleCounter_; ++i)
     {
         bool recv_status = receiveMasterFrameBlocking(dw_vector_.at(i), remote_address, MASTER_REQUEST_1, timeout_time - timer_.read(), &raw_result_.timestamp_master_request_1.at(i), NULL);
         if (!recv_status)
@@ -138,7 +138,7 @@ const UWB2WayMultiRange::RawRangingResult& UWB2WayMultiRange::measureTimesOfFlig
     }
 
     //Receive slave reply on secondary modules
-    for (int i = 1; i < moduleCounter; i++)
+    for (int i = 1; i < moduleCounter_; i++)
     {
         bool recv_status = receiveSlaveFrameBlocking(dw_vector_.at(i), SLAVE_REPLY, timeout_time - timer_.read(), &raw_result_.timestamp_slave_reply.at(i), NULL);
         if (!recv_status)
@@ -163,7 +163,7 @@ const UWB2WayMultiRange::RawRangingResult& UWB2WayMultiRange::measureTimesOfFlig
     }
 
     //Receiving master request 2 on secondary modules
-    for (int i = 1; i < moduleCounter; ++i)
+    for (int i = 1; i < moduleCounter_; ++i)
     {
         bool recv_status = receiveMasterFrameBlocking(dw_vector_.at(i), remote_address, MASTER_REQUEST_2, timeout_time - timer_.read(), &raw_result_.timestamp_master_request_2.at(i), NULL);
         if (!recv_status)
@@ -176,7 +176,7 @@ const UWB2WayMultiRange::RawRangingResult& UWB2WayMultiRange::measureTimesOfFlig
         //DEBUG_PRINTF_VA("timestamp_master_request_2[%d]: %lu\r\n", i, raw_result_.timestamp_master_request_2[i]);
     }
 
-    for (int i = 0; i < moduleCounter; ++i)
+    for (int i = 0; i < moduleCounter_; ++i)
     {
         correctTimestamps(&raw_result_.timestamp_master_request_1.at(i), &raw_result_.timestamp_slave_reply.at(i), &raw_result_.timestamp_master_request_2.at(i));
     }

@@ -84,7 +84,7 @@ public:
 
 protected:
     std::vector<DW1000*> dw_vector_;
-    uint8_t moduleCounter;
+    uint8_t moduleCounter_;
     RawRangingResult raw_result_;			//    RangingResult result_;
 
 

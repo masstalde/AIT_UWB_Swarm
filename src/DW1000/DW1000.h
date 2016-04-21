@@ -59,7 +59,7 @@ class DW1000
         const static uint64_t CONST_2POWER40 = 1099511627776;  // Time register in DW1000 is 40 bit so this is needed to detect overflows.
 
         DW1000(SPI& spi, InterruptIn* irq, PinName CS, PinName RESET = NC);              // constructor, uses SPI class
-        DW1000(SPI& spi, PinName CS, PinName RESET = NC, bool interruptIsInit = false);  //Constructor without irq pin
+        DW1000(SPI& spi, PinName CS, PinName RESET = NC);  //Constructor without irq pin
 
         void setCallbacks(void (*callbackRX)(void), void (*callbackTX)(void));                  // setter for callback functions, automatically enables interrupt, if NULL is passed the coresponding interrupt gets disabled
         template<typename T>
@@ -87,6 +87,10 @@ class DW1000
         float getSYSTimestampUS();
         float getRXTimestampUS();
         float getTXTimestampUS();
+
+        bool isInterruptInit() const{
+        	return interruptIsInit;
+        };
 
         uint16_t getStdNoise();
         uint16_t getPACC();
@@ -126,6 +130,7 @@ class DW1000
         InterruptIn* irq;
         FunctionPointer callbackRX;                                                             // function pointer to callback which is called when successfull RX took place
         FunctionPointer callbackTX;                                                             // function pointer to callback which is called when successfull TX took place
+        bool interruptIsInit = false;
         void setInterrupt(bool RX, bool TX);                                                    // set Interrupt for received a good frame (CRC ok) or transmission done
         void ISR();                                                                             // interrupt handling method (also calls according callback methods)
         
