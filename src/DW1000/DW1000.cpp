@@ -13,16 +13,22 @@ DW1000::DW1000(SPI& spi, InterruptIn* irq, PinName CS, PinName RESET)
 {
 	this->irq = irq;
 	this->irq->rise(this, &DW1000::ISR);
-	DW1000(spi, CS, RESET);
+	init();
 
 }
 DW1000::DW1000(SPI& spi, PinName CS, PinName RESET)
-: spi(spi), cs(CS), reset(RESET) {
+: spi(spi), cs(CS), reset(RESET), interruptIsInit(false)
+{
 
 	if (!interruptIsInit)
 		this->irq = NULL;
 
     setCallbacks(NULL, NULL);
+    init();
+}
+
+void DW1000::init(){
+
 
     select();
     deselect();                         // Chip must be deselected first

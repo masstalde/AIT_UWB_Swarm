@@ -22,7 +22,7 @@ UWBSwarmRing::UWBSwarmRing()
 }
 
 UWBSwarmRing::UWBSwarmRing(UWB2WayMultiRange* tracker)
-: UWBProtocol(ENTRY_ADDRESS)
+: UWBProtocol(ENTRY_ADDRESS), numberOfAgents_(0)
 {
 	registerTracker(tracker);
 }
@@ -41,37 +41,38 @@ void UWBSwarmRing::registerTracker(UWB2WayMultiRange* tracker) {
 
 bool UWBSwarmRing::getRingAddress() {
 
-	DW1000* masterModule = tracker_->getModule(1);
+	DW1000* masterModule = tracker_->getModule(0);
 
 	bool recStatus = receiveTrackerFrameBlocking(masterModule, 1.2f); //receive any frame for ENTRY_ADDRESS
 
 	if (recStatus && (receivedFrame_.type == RING_ENTRY_PING)) {
 
-		tracker_->setAddress(receivedFrame_.address + 1);	//if successful, change address for the tracker to the acquired ring address
+		//tracker_->setAddress(receivedFrame_.address + 1);	//if successful, change address for the tracker to the acquired ring address
 		numberOfAgents_ = receivedFrame_.address + 1;		//including oneself, set number of Agents in Ring
 
-		DEBUG_PRINTF("Got Ring address");
+		DEBUG_PRINTF("Got Ring address \r\n");
 
 		return true;
 	}
 	else {		//No entry frame received, create new ring
-		tracker_->setAddress(1);
+		//tracker_->setAddress(1);
+		address_ = 1;
 		numberOfAgents_ = 1;
 
-		DEBUG_PRINTF("New Ring initialized");
+		DEBUG_PRINTF("New Ring initialized \r\n");
 	}
 
 	return false;
 }
 
 bool UWBSwarmRing::startRingParticipation() {
-	DW1000* masterModule = tracker_->getModule(1);
+	DW1000* masterModule = tracker_->getModule(0);
 
 	if (numberOfAgents_ == 1){
 		ticker.attach(this, &UWBSwarmRing::sendRingEntryPing, 1.0f);			//Ping and wait for another agent
 		startListeningInterrupt();
 
-		DEBUG_PRINTF("Started listening for 2nd agent");
+		DEBUG_PRINTF("Started listening for 2nd agent \r\n");
 
 		return true;
 	}
@@ -84,7 +85,7 @@ bool UWBSwarmRing::startRingParticipation() {
 		startListeningInterrupt();											//Start receiving frames via interrupt
 		ticker.attach(this, &UWBSwarmRing::sendRingEntryPing, 1.0f);		//Fulfil duty as new tail
 
-		DEBUG_PRINTF("Am now the new tail");
+		DEBUG_PRINTF("Am now the new tail \r\n");
 	}
 
 	return recStatus;
@@ -92,17 +93,17 @@ bool UWBSwarmRing::startRingParticipation() {
 }
 
 void UWBSwarmRing::sendRingEntryPing(){
-	DW1000* masterModule = tracker_->getModule(1);
+	DW1000* masterModule = tracker_->getModule(0);
 	bool transStatus = sendRangingFrameBlocking(masterModule, ENTRY_ADDRESS, RING_ENTRY_PING, 0.1f);
 
 	if (transStatus)
-		DEBUG_PRINTF("Entry ping sent");
+		DEBUG_PRINTF("Entry ping sent \r\n");
 	else
-		ERROR_PRINTF("Entry ping sending failed");
+		ERROR_PRINTF("Entry ping sending failed \r\n");
 }
 
 void UWBSwarmRing::receiveFrameCallback(){
-	DW1000* masterModule = tracker_->getModule(1);
+	DW1000* masterModule = tracker_->getModule(0);
 	masterModule->readRegister(DW1000_RX_BUFFER, 0, reinterpret_cast<uint8_t*>(&receivedFrame_), masterModule->getFramelength());
 
 	if (receivedFrame_.remote_address == address_){
@@ -119,7 +120,7 @@ void UWBSwarmRing::receiveFrameCallback(){
 				bool transStatus = sendRangingFrameBlocking(masterModule, numberOfAgents_, RING_ENTRY_PING, 0.1f);
 
 				if (transStatus)
-					DEBUG_PRINTF("New tail attached");
+					DEBUG_PRINTF("New tail attached \r\n");
 
 
 			}
@@ -141,16 +142,16 @@ void UWBSwarmRing::sentFrameCallback(){
 }
 void UWBSwarmRing::startListeningInterrupt() {
 
-	DW1000* masterModule = tracker_->getModule(1);
+	DW1000* masterModule = tracker_->getModule(0);
 	if (masterModule->isInterruptInit())
 		masterModule->setCallbacks(this, &UWBSwarmRing::receiveFrameCallback, &UWBSwarmRing::sentFrameCallback);
 	else
-		ERROR_PRINTF("Cannot set interrupt for masterModule");
+		ERROR_PRINTF("Cannot set interrupt for masterModule \r\n");
 }
 
 void UWBSwarmRing::stopInterrupt() {
 
-	DW1000* masterModule = tracker_->getModule(1);
+	DW1000* masterModule = tracker_->getModule(0);
 	masterModule->setCallbacks(NULL, NULL);
 }
 

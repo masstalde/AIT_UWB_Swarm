@@ -49,6 +49,7 @@ const bool USE_NLOS_SETTINGS = true;
 	const PinName DW_MOSI_PIN = p5;
 	const PinName DW_MISO_PIN = p6;
 	const PinName DW_SCLK_PIN = p7;
+	const PinName DW_IRQ_PIN = p29;
     //const PinName DW_CS_PINS[NUM_OF_DW_UNITS] = {p8, p9, p10};
 #else ifdef NUCLEO_411RE
     const int NUM_OF_DW_UNITS = 4;
@@ -87,11 +88,15 @@ int main()
     Timer timer;
     timer.start();
 
+    InterruptIn irq(DW_IRQ_PIN);
+
 #ifdef MBED_LPC1768
-    DW1000 dw_array[NUM_OF_DW_UNITS]= {DW1000(spi, p8), DW1000(spi, p9), DW1000(spi, p10), DW1000(spi, p11)};
+    DW1000 dw_array[NUM_OF_DW_UNITS]= {DW1000(spi, &irq, p8), DW1000(spi, p9), DW1000(spi, p10), DW1000(spi, p11)};
 #else ifdef NUCLEO_411RE
     DW1000 dw_array[NUM_OF_DW_UNITS]= {DW1000(spi, D15), DW1000(spi, D14), DW1000(spi, D9), DW1000(spi, D8)}; //, DW1000(spi, D10)};
 #endif
+
+
 
 
     // Now we can initialize the DW modules
@@ -128,7 +133,7 @@ int main()
 
     UWBSwarmRing ring(&tracker);
 
-    ring.getAddress();
+    ring.getRingAddress();
     ring.startRingParticipation();
 
     while (true)

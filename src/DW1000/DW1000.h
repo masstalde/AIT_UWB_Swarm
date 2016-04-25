@@ -123,6 +123,7 @@ class DW1000
 
     private:
         void loadLDE();                                                                         // load the leading edge detection algorithm to RAM, [IMPORTANT because receiving malfunction may occur] see User Manual LDELOAD on p22 & p158
+        void init();
         void resetRX();                                                                         // soft reset only the tranciever part of DW1000
         void resetAll();                                                                        // soft reset the entire DW1000 (some registers stay as they were see User Manual)
 
