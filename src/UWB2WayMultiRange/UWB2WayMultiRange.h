@@ -73,6 +73,8 @@ public:
 
     int getNumOfModules() const;
 
+    void setAddress(uint8_t newAddress);
+
     const DW1000* getModule(int module_index) const;
     DW1000* getModule(int module_index);
 
@@ -86,7 +88,6 @@ protected:
     std::vector<DW1000*> dw_vector_;
     uint8_t moduleCounter_;
     RawRangingResult raw_result_;			//    RangingResult result_;
-
 
     bool receiveFramesBlocking(std::vector<DW1000*>& dw_array, float timeout, uint64_t* timestamp_recv = NULL, ReceptionStats* stats = NULL);
     bool receiveFramesBlocking(std::vector<DW1000*>& dw_array, uint8_t type, float timeout, uint64_t* timestamp_recv = NULL, ReceptionStats* stats = NULL);

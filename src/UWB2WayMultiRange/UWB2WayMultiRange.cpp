@@ -41,6 +41,11 @@ void UWB2WayMultiRange::addModule(DW1000* dw_ptr)
     moduleCounter_++;
 }
 
+void UWB2WayMultiRange::setAddress(uint8_t newAddress)
+{
+	this->address_ = newAddress;
+}
+
 int UWB2WayMultiRange::getNumOfModules() const
 {
 	return moduleCounter_;

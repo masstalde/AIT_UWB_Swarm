@@ -7,6 +7,7 @@
 #include <DW1000.h>
 #include <DW1000Utils.h>
 
+
 //#include <mavlink_bridge/mavlink_bridge.h>
 
 #include <ait_link/uwb_link/uwb_link_impl.h>
@@ -14,6 +15,7 @@
 
 #include "BufferedSerial.h"
 #include "UWB2WayMultiRange.h"
+#include "UWBSwarmRing.h"
 
 enum CommMode {
     ASCII,
@@ -30,6 +32,7 @@ using ait::UWBLinkMbed;
 using ait::UWBMessageString;
 using ait::UWBMessageMultiRange;
 using ait::UWBMessage;
+using ait::UWBSwarmRing;
 
 
 const int SPI_FREQUENCY = 5000000;
@@ -123,15 +126,20 @@ int main()
         tracker.addModule(&dw_array[i]);
     }
 
+    UWBSwarmRing ring(&tracker);
+
+    ring.getAddress();
+    ring.startRingParticipation();
+
     while (true)
     {
 
-    	//measureTimesOfFlight(tracker, ul, timer);
-
-       const UWB2WayMultiRange::RawRangingResult& raw_result = tracker.measureTimesOfFlight(SLAVE_ADDRESS_OFFSET);
-
-       if (raw_result.status == 0)
-    	   printDistancesToConsole(tracker, raw_result);
+//    	//measureTimesOfFlight(tracker, ul, timer);
+//
+//       const UWB2WayMultiRange::RawRangingResult& raw_result = tracker.measureTimesOfFlight(SLAVE_ADDRESS_OFFSET);
+//
+//       if (raw_result.status == 0)
+//    	   printDistancesToConsole(tracker, raw_result);
 
        wait_ms(500);
 

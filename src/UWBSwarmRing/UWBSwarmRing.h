@@ -8,33 +8,52 @@
 #ifndef UWBSWARMRING_H_
 #define UWBSWARMRING_H_
 
+#include "UWB2WayMultiRange.h"
+
 namespace ait{
+
+const uint8_t ENTRY_ADDRESS = 0;
 
 class UWBSwarmRing: public UWBProtocol {
 
 public:
 	UWBSwarmRing();
-	UWBSwarmRing(const UWB2WayMultiRange* tracker);
+	UWBSwarmRing(UWB2WayMultiRange* tracker);
 	virtual ~UWBSwarmRing();
 
 
 
-	void registerTracker(const UWB2WayMultiRange* tracker);
+	void registerTracker(UWB2WayMultiRange* tracker);
 	bool getRingAddress();
 	bool startRingParticipation();
 
 private:
 
-	void startInterrupt();			//start listening frames
+	enum FrameType
+	    {
+			RING_ENTRY_PING = 0,
+	        MASTER_REQUEST_1,
+	        SLAVE_REPLY,
+	        MASTER_REQUEST_2,
+	        SLAVE_REPORT,
+	        RING_NEW_MEMBER
+	    };
+
+	void startListeningInterrupt();			//start listening for frames
 	void stopInterrupt();			//stop listening for frames, go into blocking mode
+	void sendRingEntryPing();		//send the ping for new ring members
 
 	void receiveFrameCallback();
 	void sentFrameCallback();
 
+
 	void* (*onRangingCompleteCallback)();		//what to do with the resulted measurements
+
 
 	UWB2WayMultiRange* tracker_;
 	uint8_t numberOfAgents_;
+	Ticker ticker;
+
 };
 
 } /* namespace ait */
