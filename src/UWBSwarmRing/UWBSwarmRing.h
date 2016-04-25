@@ -47,11 +47,10 @@ private:
 	void sentFrameCallback();
 
 
-	void* (*onRangingCompleteCallback)();		//what to do with the resulted measurements
+	void* (*onRangingCompleteCallback)(const UWB2WayMultiRange::RawRangingResult*);		//what to do with the resulted measurements
 
 
 	UWB2WayMultiRange* tracker_;
-	uint8_t numberOfAgents_;
 	Ticker ticker;
 
 };

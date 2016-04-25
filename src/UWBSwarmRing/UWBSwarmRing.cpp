@@ -18,11 +18,11 @@ UWBSwarmRing::UWBSwarmRing()
 {
 	// TODO Auto-generated constructor stub
 	(void) tracker_;
-	numberOfAgents_ = 0;
+
 }
 
 UWBSwarmRing::UWBSwarmRing(UWB2WayMultiRange* tracker)
-: UWBProtocol(ENTRY_ADDRESS), numberOfAgents_(0)
+: UWBProtocol(ENTRY_ADDRESS)
 {
 	registerTracker(tracker);
 }
@@ -46,19 +46,14 @@ bool UWBSwarmRing::getRingAddress() {
 	bool recStatus = receiveTrackerFrameBlocking(masterModule, 1.2f); //receive any frame for ENTRY_ADDRESS
 
 	if (recStatus && (receivedFrame_.type == RING_ENTRY_PING)) {
-
-		//tracker_->setAddress(receivedFrame_.address + 1);	//if successful, change address for the tracker to the acquired ring address
-		numberOfAgents_ = receivedFrame_.address + 1;		//including oneself, set number of Agents in Ring
+		address_ = receivedFrame_.address + 1;
 
 		DEBUG_PRINTF("Got Ring address \r\n");
 
 		return true;
 	}
-	else {		//No entry frame received, create new ring
-		//tracker_->setAddress(1);
+	else {											//No entry frame received, create new ring
 		address_ = 1;
-		numberOfAgents_ = 1;
-
 		DEBUG_PRINTF("New Ring initialized \r\n");
 	}
 
@@ -68,22 +63,24 @@ bool UWBSwarmRing::getRingAddress() {
 bool UWBSwarmRing::startRingParticipation() {
 	DW1000* masterModule = tracker_->getModule(0);
 
-	if (numberOfAgents_ == 1){
+	if (address_ == 1){
 		ticker.attach(this, &UWBSwarmRing::sendRingEntryPing, 1.0f);			//Ping and wait for another agent
 		startListeningInterrupt();
+
+		tracker_->setAddress(address_);											//set the correct address to the tracker
 
 		DEBUG_PRINTF("Started listening for 2nd agent \r\n");
 
 		return true;
 	}
 
-	sendRangingFrameBlocking(masterModule, numberOfAgents_ - 1, RING_NEW_MEMBER, 0.1f); //send Frame to previous tail of ring to be included in the ring
-	this->address_ = numberOfAgents_;	//Listen on and send from new address from now on
-
+	sendRangingFrameBlocking(masterModule, address_ - 1, RING_NEW_MEMBER, 0.1f);//send Frame to previous tail of ring to be included in the ring
 	bool recStatus = receiveTrackerFrameBlocking(masterModule, 0.1f);
 	if (recStatus && (receivedFrame_.type == RING_ENTRY_PING)) {
-		startListeningInterrupt();											//Start receiving frames via interrupt
-		ticker.attach(this, &UWBSwarmRing::sendRingEntryPing, 1.0f);		//Fulfil duty as new tail
+		startListeningInterrupt();												//Start receiving frames via interrupt
+		ticker.attach(this, &UWBSwarmRing::sendRingEntryPing, 1.0f);			//Fulfil duty as new tail
+
+		tracker_->setAddress(address_);											//set the correct address to the tracker
 
 		DEBUG_PRINTF("Am now the new tail \r\n");
 	}
@@ -112,20 +109,25 @@ void UWBSwarmRing::receiveFrameCallback(){
 		{
 
 		case RING_NEW_MEMBER:				//a new member wants to enter the ring
-			if (receivedFrame_.address == ENTRY_ADDRESS)			//Am no longer the tail
+
+			if (receivedFrame_.address == (address_ + 1))			//Am no longer the tail
 			{
-				numberOfAgents_++;
 				ticker.detach();
 
-				bool transStatus = sendRangingFrameBlocking(masterModule, numberOfAgents_, RING_ENTRY_PING, 0.1f);
+				bool transStatus = sendRangingFrameBlocking(masterModule, (address_ + 1), RING_ENTRY_PING, 0.1f);
 
 				if (transStatus)
 					DEBUG_PRINTF("New tail attached \r\n");
+			}
 
+			if (address_ == 1)
+			{
+				const UWB2WayMultiRange::RawRangingResult& raw_result = tracker_->measureTimesOfFlight(address_ + 1);
+
+				if (onRangingCompleteCallback)
+				this->onRangingCompleteCallback(&raw_result);
 
 			}
-			else
-				numberOfAgents_++;
 
 
 
