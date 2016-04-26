@@ -167,6 +167,9 @@ const UWB2WayMultiRange::RawRangingResult& UWB2WayMultiRange::measureTimesOfFlig
         return raw_result_;
     }
 
+	DEBUG_PRINTF("\r\nMaster Request 2 sent!\r\n");
+
+
     //Receiving master request 2 on secondary modules
     for (int i = 1; i < moduleCounter_; ++i)
     {
@@ -194,6 +197,7 @@ const UWB2WayMultiRange::RawRangingResult& UWB2WayMultiRange::measureTimesOfFlig
         raw_result_.status = NO_SLAVE_REPORT;
         return raw_result_;
     }
+
 
     raw_result_.timeDiffSlave = receivedFrame_.timediff_slave;
     raw_result_.timestamp_master_request_1_recv = receivedFrame_.timestamp_master_request_1_recv;

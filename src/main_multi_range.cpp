@@ -44,7 +44,7 @@ const int SLAVE_ADDRESS_OFFSET = 10;
 const bool USE_NLOS_SETTINGS = true;
 
 #ifdef MBED_LPC1768
-	const int NUM_OF_DW_UNITS = 4;
+	const int NUM_OF_DW_UNITS = 1;
 	const PinName DW_RESET_PIN = p15;
 	const PinName DW_MOSI_PIN = p5;
 	const PinName DW_MISO_PIN = p6;
@@ -91,7 +91,7 @@ int main()
     InterruptIn irq(DW_IRQ_PIN);
 
 #ifdef MBED_LPC1768
-    DW1000 dw_array[NUM_OF_DW_UNITS]= {DW1000(spi, &irq, p8), DW1000(spi, p9), DW1000(spi, p10), DW1000(spi, p11)};
+    DW1000 dw_array[NUM_OF_DW_UNITS]= {DW1000(spi, &irq, p8)}; //, DW1000(spi, p9), DW1000(spi, p10), DW1000(spi, p11)};
 #else ifdef NUCLEO_411RE
     DW1000 dw_array[NUM_OF_DW_UNITS]= {DW1000(spi, D15), DW1000(spi, D14), DW1000(spi, D9), DW1000(spi, D8)}; //, DW1000(spi, D10)};
 #endif

@@ -36,22 +36,27 @@ private:
 	        SLAVE_REPLY,
 	        MASTER_REQUEST_2,
 	        SLAVE_REPORT,
+	        RING_TOKEN,
 	        RING_NEW_MEMBER
 	    };
 
-	void startListeningInterrupt();			//start listening for frames
-	void stopInterrupt();			//stop listening for frames, go into blocking mode
-	void sendRingEntryPing();		//send the ping for new ring members
+	void attachInterruptCallbacks();			//start listening for frames
+	void detachInterruptCallbacks();					//stop listening for frames, go into blocking mode
+	void sendRingEntryPing();				//send the ping for new ring members
+	void joinNewAgent();					//Handle request from a new agent
 
 	void receiveFrameCallback();
 	void sentFrameCallback();
 
 
-	void* (*onRangingCompleteCallback)(const UWB2WayMultiRange::RawRangingResult*);		//what to do with the resulted measurements
+	void* (*onRangingCompleteCallback)(const UWB2WayMultiRange::RawRangingResult&);		//what to do with the resulted measurements
 
 
 	UWB2WayMultiRange* tracker_;
+	DW1000*	masterModule_;
 	Ticker ticker;
+	bool isTail_;
+
 
 };
 
