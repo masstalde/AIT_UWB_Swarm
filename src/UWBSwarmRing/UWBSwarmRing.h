@@ -57,6 +57,11 @@ private:
 	Ticker ticker;
 	bool isTail_;
 
+	uint64_t master_request_1_timestamp_;
+	uint64_t slave_reply_timestamp_;
+	uint64_t master_request_2_timestamp_;
+	uint64_t timediff_slave_;
+
 
 };
 

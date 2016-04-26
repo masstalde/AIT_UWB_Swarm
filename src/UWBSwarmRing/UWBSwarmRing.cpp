@@ -22,7 +22,7 @@ UWBSwarmRing::UWBSwarmRing()
 }
 
 UWBSwarmRing::UWBSwarmRing(UWB2WayMultiRange* tracker)
-: UWBProtocol(ENTRY_ADDRESS)
+: UWBProtocol(ENTRY_ADDRESS), onRangingCompleteCallback(0)
 {
 	registerTracker(tracker);
 }
@@ -31,8 +31,6 @@ UWBSwarmRing::~UWBSwarmRing()
 {
 	// TODO Auto-generated destructor stub
 }
-
-
 
 void UWBSwarmRing::registerTracker(UWB2WayMultiRange* tracker) {
 
@@ -109,10 +107,6 @@ void UWBSwarmRing::receiveFrameCallback(){
 	if (receivedFrame_.remote_address == address_){
 
         uint8_t sender_address = receivedFrame_.address;
-        uint64_t master_request_1_timestamp;
-        uint64_t slave_reply_timestamp_;
-        uint64_t master_request_2_timestamp;
-        uint64_t timediff_slave;
 
 
 		switch (receivedFrame_.type)
@@ -128,32 +122,24 @@ void UWBSwarmRing::receiveFrameCallback(){
 				ticker.detach();
 
         	DEBUG_PRINTF("\r\nReceived Master Request 1\r\n");
-			master_request_1_timestamp = masterModule_->getRXTimestamp();
-			sendDelayedRangingFrame(masterModule_, sender_address, SLAVE_REPLY, master_request_1_timestamp + ANSWER_DELAY_TIMEUNITS);
+			master_request_1_timestamp_ = masterModule_->getRXTimestamp();
+			sendDelayedRangingFrame(masterModule_, sender_address, SLAVE_REPLY, master_request_1_timestamp_ + ANSWER_DELAY_TIMEUNITS);
+			slave_reply_timestamp_ = masterModule_->getTXTimestamp();
         	DEBUG_PRINTF("\r\nSlaveReply sent\r\n");
 
-			slave_reply_timestamp_ = masterModule_->getTXTimestamp();
+        	break;
 
-			bool recStatus = receiveSlaveFrameBlocking(masterModule_, MASTER_REQUEST_2, 0.2f, &master_request_2_timestamp);
-			if (recStatus)
-			{
-            	DEBUG_PRINTF("\r\nReceived Master Request 2\r\n");
-            	correctTimestamps(&master_request_1_timestamp, &slave_reply_timestamp_, &master_request_2_timestamp);
-            	timediff_slave = -2 * slave_reply_timestamp_ + master_request_1_timestamp + master_request_2_timestamp;
+		case MASTER_REQUEST_2:
+        	DEBUG_PRINTF("\r\nReceived Master Request 2\r\n");
+        	correctTimestamps(&master_request_1_timestamp_, &slave_reply_timestamp_, &master_request_2_timestamp_);
+        	timediff_slave_ = -2 * slave_reply_timestamp_ + master_request_1_timestamp_ + master_request_2_timestamp_;
+            sendReportFrame(masterModule_, sender_address, timediff_slave_, master_request_1_timestamp_, slave_reply_timestamp_, master_request_2_timestamp_);
+        	DEBUG_PRINTF("\r\nReport Frame sent\r\n");
 
-            	sendReportFrame(masterModule_, sender_address, timediff_slave, master_request_1_timestamp, slave_reply_timestamp_, master_request_2_timestamp);
+            break;
 
-			}else
-			{
-            	ERROR_PRINTF("\r\nNo Master Request 2 received!\r\n");
-            	break;
-			}
+		case RING_TOKEN:
 
-
-			recStatus = receiveSlaveFrameBlocking(masterModule_, RING_TOKEN, 0.1f);		//Receive the token and start ranging
-			//wait_ms(5000);
-			if (recStatus)
-			{
 				DEBUG_PRINTF("\r\nGot the token, start ranging!\r\n");
 
 				const UWB2WayMultiRange::RawRangingResult* raw_result;
@@ -170,18 +156,17 @@ void UWBSwarmRing::receiveFrameCallback(){
 					sendRangingFrame(masterModule_, address_ + 1, RING_TOKEN);
 				else
 					sendRangingFrame(masterModule_, 1, RING_TOKEN);
-			}
+
+				DEBUG_PRINTF("\r\nFinished Ranging, passed token!\r\n");
+
 
 			if (isTail_)					//resume interrupting!
-				//ticker.attach(this, &UWBSwarmRing::sendRingEntryPing, 1.0f);
+				ticker.attach(this, &UWBSwarmRing::sendRingEntryPing, 1.0f);
 			break;
 
 
 		}
-
 	}
-
-
 }
 
 void UWBSwarmRing::sentFrameCallback(){
@@ -221,6 +206,8 @@ void UWBSwarmRing::joinNewAgent()
 		if (onRangingCompleteCallback)
 		this->onRangingCompleteCallback(raw_result);
 		sendRangingFrame(masterModule_, address_ + 1, RING_TOKEN);
+
+		DEBUG_PRINTF("\r\nFinished Ranging, passed token!\r\n");
 
 	}
 
