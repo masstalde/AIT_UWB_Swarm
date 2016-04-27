@@ -13,16 +13,13 @@
 
 namespace ait {
 
-UWBSwarmRing::UWBSwarmRing()
-: UWBProtocol(ENTRY_ADDRESS)
-{
-	// TODO Auto-generated constructor stub
-	(void) tracker_;
-
-}
-
 UWBSwarmRing::UWBSwarmRing(UWB2WayMultiRange* tracker)
-: UWBProtocol(ENTRY_ADDRESS), onRangingCompleteCallback(0)
+: UWBProtocol(ENTRY_ADDRESS),
+  onRangingCompleteCallback(0),
+  master_request_1_timestamp_(0),
+  slave_reply_timestamp_(0),
+  master_request_2_timestamp_(0),
+  timediff_slave_(0)
 {
 	registerTracker(tracker);
 }
@@ -36,6 +33,11 @@ void UWBSwarmRing::registerTracker(UWB2WayMultiRange* tracker) {
 
 	this->tracker_ = tracker;
 	masterModule_ = tracker_->getModule(0);
+}
+
+void UWBSwarmRing::setRangingCompleteCallback(void* (*pF)(UWB2WayMultiRange&, const UWB2WayMultiRange::RawRangingResult&))
+{
+	this->onRangingCompleteCallback = pF;
 }
 
 bool UWBSwarmRing::getRingAddress() {
@@ -124,13 +126,15 @@ void UWBSwarmRing::receiveFrameCallback(){
         	DEBUG_PRINTF("\r\nReceived Master Request 1\r\n");
 			master_request_1_timestamp_ = masterModule_->getRXTimestamp();
 			sendDelayedRangingFrame(masterModule_, sender_address, SLAVE_REPLY, master_request_1_timestamp_ + ANSWER_DELAY_TIMEUNITS);
-			slave_reply_timestamp_ = masterModule_->getTXTimestamp();
+
+			//slave_reply_timestamp_ =  master_request_1_timestamp_ + ANSWER_DELAY_TIMEUNITS; //masterModule_->getTXTimestamp();
         	DEBUG_PRINTF("\r\nSlaveReply sent\r\n");
 
         	break;
 
 		case MASTER_REQUEST_2:
         	DEBUG_PRINTF("\r\nReceived Master Request 2\r\n");
+			master_request_2_timestamp_ = masterModule_->getRXTimestamp();
         	correctTimestamps(&master_request_1_timestamp_, &slave_reply_timestamp_, &master_request_2_timestamp_);
         	timediff_slave_ = -2 * slave_reply_timestamp_ + master_request_1_timestamp_ + master_request_2_timestamp_;
             sendReportFrame(masterModule_, sender_address, timediff_slave_, master_request_1_timestamp_, slave_reply_timestamp_, master_request_2_timestamp_);
@@ -150,7 +154,7 @@ void UWBSwarmRing::receiveFrameCallback(){
 					raw_result = &(tracker_->measureTimesOfFlight(1));
 
 				if (onRangingCompleteCallback)
-					this->onRangingCompleteCallback(*raw_result);
+					this->onRangingCompleteCallback(*tracker_, *raw_result);
 
 				if (!isTail_)
 					sendRangingFrame(masterModule_, address_ + 1, RING_TOKEN);
@@ -170,6 +174,9 @@ void UWBSwarmRing::receiveFrameCallback(){
 }
 
 void UWBSwarmRing::sentFrameCallback(){
+
+	if (rangingFrame_.type == SLAVE_REPLY)
+		slave_reply_timestamp_ = masterModule_->getTXTimestamp();
 
 }
 void UWBSwarmRing::attachInterruptCallbacks() {
@@ -204,7 +211,7 @@ void UWBSwarmRing::joinNewAgent()
 		const UWB2WayMultiRange::RawRangingResult& raw_result = tracker_->measureTimesOfFlight(address_ + 1);
 
 		if (onRangingCompleteCallback)
-		this->onRangingCompleteCallback(raw_result);
+		this->onRangingCompleteCallback(*tracker_, raw_result);
 		sendRangingFrame(masterModule_, address_ + 1, RING_TOKEN);
 
 		DEBUG_PRINTF("\r\nFinished Ranging, passed token!\r\n");

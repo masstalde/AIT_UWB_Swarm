@@ -17,7 +17,6 @@ const uint8_t ENTRY_ADDRESS = 0;
 class UWBSwarmRing: public UWBProtocol {
 
 public:
-	UWBSwarmRing();
 	UWBSwarmRing(UWB2WayMultiRange* tracker);
 	virtual ~UWBSwarmRing();
 
@@ -26,6 +25,8 @@ public:
 	void registerTracker(UWB2WayMultiRange* tracker);
 	bool getRingAddress();
 	bool startRingParticipation();
+
+	void setRangingCompleteCallback(void* (*pF)(UWB2WayMultiRange&, const UWB2WayMultiRange::RawRangingResult&));
 
 private:
 
@@ -49,7 +50,7 @@ private:
 	void sentFrameCallback();
 
 
-	void* (*onRangingCompleteCallback)(const UWB2WayMultiRange::RawRangingResult&);		//what to do with the resulted measurements
+	void* (*onRangingCompleteCallback)(UWB2WayMultiRange&, const UWB2WayMultiRange::RawRangingResult&);		//what to do with the resulted measurements
 
 
 	UWB2WayMultiRange* tracker_;

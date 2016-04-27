@@ -74,7 +74,7 @@ SPI spi(DW_MOSI_PIN, DW_MISO_PIN, DW_SCLK_PIN);
 UWBLinkMbed ul(&pc, MAX_UWB_LINK_FRAME_LENGTH);
 
 void send_status_message(UWBLink& ul, char* str, ...);
-void printDistancesToConsole(UWB2WayMultiRange& tracker, const UWB2WayMultiRange::RawRangingResult& raw_result);
+void* printDistancesToConsole(UWB2WayMultiRange& tracker, const UWB2WayMultiRange::RawRangingResult& raw_result);
 bool measureTimesOfFlight(UWB2WayMultiRange& tracker, UWBLink& ul, Timer& timer, float ranging_timeout = 0.1f);
 
 int main()
@@ -133,6 +133,8 @@ int main()
 
     UWBSwarmRing ring(&tracker);
 
+    ring.setRangingCompleteCallback(&printDistancesToConsole);
+
     ring.getRingAddress();
     ring.startRingParticipation();
 
@@ -152,7 +154,7 @@ int main()
     }
 }
 
-void printDistancesToConsole(UWB2WayMultiRange& tracker, const UWB2WayMultiRange::RawRangingResult& raw_result){
+void* printDistancesToConsole(UWB2WayMultiRange& tracker, const UWB2WayMultiRange::RawRangingResult& raw_result){
 
 	pc.printf("Measurement Results for %i ----> %i \r\n", raw_result.tracker_address, raw_result.remote_address);
 
