@@ -141,14 +141,9 @@ int main()
     while (true)
     {
 
-//    	//measureTimesOfFlight(tracker, ul, timer);
-//
-//       const UWB2WayMultiRange::RawRangingResult& raw_result = tracker.measureTimesOfFlight(SLAVE_ADDRESS_OFFSET);
-//
-//       if (raw_result.status == 0)
-//    	   printDistancesToConsole(tracker, raw_result);
+    	ring.rangeNextAgent();
 
-       wait_ms(500);
+       wait_ms(1);
 
 
     }

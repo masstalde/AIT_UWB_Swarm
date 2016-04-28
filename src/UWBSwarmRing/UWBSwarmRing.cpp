@@ -19,7 +19,9 @@ UWBSwarmRing::UWBSwarmRing(UWB2WayMultiRange* tracker)
   master_request_1_timestamp_(0),
   slave_reply_timestamp_(0),
   master_request_2_timestamp_(0),
-  timediff_slave_(0)
+  timediff_slave_(0),
+  hasToken_(false),
+  isTail_(true)
 {
 	registerTracker(tracker);
 }
@@ -70,9 +72,7 @@ bool UWBSwarmRing::startRingParticipation() {
 		ticker.attach(this, &UWBSwarmRing::sendRingEntryPing, 1.0f);			//Ping and wait for another agent
 		attachInterruptCallbacks();
 
-
-
-		DEBUG_PRINTF("Started listening for 2nd agent \r\n");
+		DEBUG_PRINTF("\r\nStarted listening for 2nd agent \r\n");
 
 		return true;
 	}
@@ -85,20 +85,11 @@ bool UWBSwarmRing::startRingParticipation() {
 		ticker.attach(this, &UWBSwarmRing::sendRingEntryPing, 1.0f);			//Fulfil duty as new tail
 		attachInterruptCallbacks();												//Start receiving frames via interrupt
 
-		DEBUG_PRINTF("Am now the new tail \r\n");
+		DEBUG_PRINTF("\r\nAm now the new tail \r\n");
 	}
 
 	return recStatus;
 
-}
-
-void UWBSwarmRing::sendRingEntryPing(){
-	bool transStatus = sendRangingFrameBlocking(masterModule_, ENTRY_ADDRESS, RING_ENTRY_PING, 0.1f);
-
-	if (transStatus)
-		DEBUG_PRINTF("Entry ping sent \r\n");
-	else
-		ERROR_PRINTF("Entry ping sending failed \r\n");
 }
 
 //Routine executed after DW1000 triggered the Rx interrupt. No further Rx interrupts are generated during this routine! (b/c Flag clears after)
@@ -119,55 +110,24 @@ void UWBSwarmRing::receiveFrameCallback(){
 			break;
 
 		case MASTER_REQUEST_1:				//Start blocking ranging procedure (slave role)
-
-			if (isTail_)					//stop interrupting!
-				ticker.detach();
-
-        	DEBUG_PRINTF("\r\nReceived Master Request 1\r\n");
 			master_request_1_timestamp_ = masterModule_->getRXTimestamp();
 			sendDelayedRangingFrame(masterModule_, sender_address, SLAVE_REPLY, master_request_1_timestamp_ + ANSWER_DELAY_TIMEUNITS);
-
-			//slave_reply_timestamp_ =  master_request_1_timestamp_ + ANSWER_DELAY_TIMEUNITS; //masterModule_->getTXTimestamp();
-        	DEBUG_PRINTF("\r\nSlaveReply sent\r\n");
 
         	break;
 
 		case MASTER_REQUEST_2:
-        	DEBUG_PRINTF("\r\nReceived Master Request 2\r\n");
 			master_request_2_timestamp_ = masterModule_->getRXTimestamp();
         	correctTimestamps(&master_request_1_timestamp_, &slave_reply_timestamp_, &master_request_2_timestamp_);
         	timediff_slave_ = -2 * slave_reply_timestamp_ + master_request_1_timestamp_ + master_request_2_timestamp_;
             sendReportFrame(masterModule_, sender_address, timediff_slave_, master_request_1_timestamp_, slave_reply_timestamp_, master_request_2_timestamp_);
-        	DEBUG_PRINTF("\r\nReport Frame sent\r\n");
 
             break;
 
 		case RING_TOKEN:
 
-				DEBUG_PRINTF("\r\nGot the token, start ranging!\r\n");
+				hasToken_ = true;
 
-				const UWB2WayMultiRange::RawRangingResult* raw_result;
-
-				if (!isTail_)
-					raw_result = &(tracker_->measureTimesOfFlight(address_ + 1));
-				else
-					raw_result = &(tracker_->measureTimesOfFlight(1));
-
-				if (onRangingCompleteCallback)
-					this->onRangingCompleteCallback(*tracker_, *raw_result);
-
-				if (!isTail_)
-					sendRangingFrame(masterModule_, address_ + 1, RING_TOKEN);
-				else
-					sendRangingFrame(masterModule_, 1, RING_TOKEN);
-
-				DEBUG_PRINTF("\r\nFinished Ranging, passed token!\r\n");
-
-
-			if (isTail_)					//resume interrupting!
-				ticker.attach(this, &UWBSwarmRing::sendRingEntryPing, 1.0f);
 			break;
-
 
 		}
 	}
@@ -175,10 +135,74 @@ void UWBSwarmRing::receiveFrameCallback(){
 
 void UWBSwarmRing::sentFrameCallback(){
 
-	if (rangingFrame_.type == SLAVE_REPLY)
+	switch (rangingFrame_.type){
+
+	case SLAVE_REPLY:
 		slave_reply_timestamp_ = masterModule_->getTXTimestamp();
+		break;
+	}
+
 
 }
+
+void UWBSwarmRing::rangeNextAgent(){
+
+	if (!hasToken_)
+		return;
+
+	DEBUG_PRINTF("Have TOKEN, start ranging!\r\n");
+
+	if (isTail_)					//stop interrupting!
+		ticker.detach();
+
+	detachInterruptCallbacks();
+
+	const UWB2WayMultiRange::RawRangingResult* raw_result;
+
+	if (!isTail_)
+		raw_result = &(tracker_->measureTimesOfFlight(address_ + 1));
+	else
+		raw_result = &(tracker_->measureTimesOfFlight(1));
+
+	if (onRangingCompleteCallback)
+		this->onRangingCompleteCallback(*tracker_, *raw_result);
+
+	hasToken_ = false;
+
+	if (!isTail_){
+
+		bool recv = sendRangingFrameBlocking(masterModule_, address_ + 1, RING_TOKEN, 0.1f);
+		if (!recv)
+			ERROR_PRINTF("Could not send Token!\r\n");
+		else
+			DEBUG_PRINTF("Token sent\r\n");
+	}
+	else
+	{
+
+		//sendRingEntryPing();
+
+		bool recv = sendRangingFrameBlocking(masterModule_, 1, RING_TOKEN, 0.1f);
+		if (!recv)
+			ERROR_PRINTF("Could not send Token!\r\n");
+		else
+			DEBUG_PRINTF("Token sent\r\n");
+
+	}
+
+	attachInterruptCallbacks();
+
+}
+
+void UWBSwarmRing::sendRingEntryPing(){
+	bool transStatus = sendRangingFrameBlocking(masterModule_, ENTRY_ADDRESS, RING_ENTRY_PING, 0.1f);
+
+	if (transStatus)
+		DEBUG_PRINTF("Entry ping sent \r\n");
+	else
+		ERROR_PRINTF("Entry ping sending failed! \r\n");
+}
+
 void UWBSwarmRing::attachInterruptCallbacks() {
 
 	if (masterModule_->isInterruptInit())
@@ -208,14 +232,7 @@ void UWBSwarmRing::joinNewAgent()
 
 	if (address_ == 1)
 	{
-		const UWB2WayMultiRange::RawRangingResult& raw_result = tracker_->measureTimesOfFlight(address_ + 1);
-
-		if (onRangingCompleteCallback)
-		this->onRangingCompleteCallback(*tracker_, raw_result);
-		sendRangingFrame(masterModule_, address_ + 1, RING_TOKEN);
-
-		DEBUG_PRINTF("\r\nFinished Ranging, passed token!\r\n");
-
+		hasToken_ = true;
 	}
 
 }

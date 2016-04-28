@@ -224,6 +224,9 @@ void DW1000::receiveString(char* message) {
 }
 
 void DW1000::sendFrame(uint8_t* message, uint16_t length) {
+
+	clearSentFlag();
+
     //if (length >= 1021) length = 1021;                            // check for maximim length a frame can have with 1024 Byte frames [not used, see constructor]
     if (length >= 125) length = 125;                                // check for maximim length a frame can have with 127 Byte frames
     writeRegister(DW1000_TX_BUFFER, 0, message, length);            // fill buffer

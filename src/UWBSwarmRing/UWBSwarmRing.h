@@ -25,6 +25,8 @@ public:
 	void registerTracker(UWB2WayMultiRange* tracker);
 	bool getRingAddress();
 	bool startRingParticipation();
+	void rangeNextAgent();
+
 
 	void setRangingCompleteCallback(void* (*pF)(UWB2WayMultiRange&, const UWB2WayMultiRange::RawRangingResult&));
 
@@ -41,8 +43,8 @@ private:
 	        RING_NEW_MEMBER
 	    };
 
-	void attachInterruptCallbacks();			//start listening for frames
-	void detachInterruptCallbacks();					//stop listening for frames, go into blocking mode
+	void attachInterruptCallbacks();		//start listening for frames
+	void detachInterruptCallbacks();		//stop listening for frames, go into blocking mode
 	void sendRingEntryPing();				//send the ping for new ring members
 	void joinNewAgent();					//Handle request from a new agent
 
@@ -56,6 +58,7 @@ private:
 	UWB2WayMultiRange* tracker_;
 	DW1000*	masterModule_;
 	Ticker ticker;
+	bool hasToken_;
 	bool isTail_;
 
 	uint64_t master_request_1_timestamp_;
