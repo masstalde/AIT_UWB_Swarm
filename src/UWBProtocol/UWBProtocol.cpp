@@ -173,6 +173,7 @@ bool UWBProtocol::sendFrameBlocking(DW1000* dw_ptr, uint8_t* frame, int frame_si
             *timestamp_send = dw_ptr->getTXTimestamp();
         }
     }
+
     return status;
 }
 

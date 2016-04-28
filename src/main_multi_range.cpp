@@ -44,7 +44,7 @@ const int SLAVE_ADDRESS_OFFSET = 10;
 const bool USE_NLOS_SETTINGS = true;
 
 #ifdef MBED_LPC1768
-	const int NUM_OF_DW_UNITS = 4;
+	const int NUM_OF_DW_UNITS = 1;
 	const PinName DW_RESET_PIN = p15;
 	const PinName DW_MOSI_PIN = p5;
 	const PinName DW_MISO_PIN = p6;
@@ -74,7 +74,7 @@ SPI spi(DW_MOSI_PIN, DW_MISO_PIN, DW_SCLK_PIN);
 UWBLinkMbed ul(&pc, MAX_UWB_LINK_FRAME_LENGTH);
 
 void send_status_message(UWBLink& ul, char* str, ...);
-void printDistancesToConsole(UWB2WayMultiRange& tracker, const UWB2WayMultiRange::RawRangingResult& raw_result);
+void* printDistancesToConsole(UWB2WayMultiRange& tracker, const UWB2WayMultiRange::RawRangingResult& raw_result);
 bool measureTimesOfFlight(UWB2WayMultiRange& tracker, UWBLink& ul, Timer& timer, float ranging_timeout = 0.1f);
 
 int main()
@@ -91,7 +91,7 @@ int main()
     InterruptIn irq(DW_IRQ_PIN);
 
 #ifdef MBED_LPC1768
-    DW1000 dw_array[NUM_OF_DW_UNITS]= {DW1000(spi, &irq, p8), DW1000(spi, p9), DW1000(spi, p10), DW1000(spi, p11)};
+    DW1000 dw_array[NUM_OF_DW_UNITS]= {DW1000(spi, &irq, p8)}; //, DW1000(spi, p9), DW1000(spi, p10), DW1000(spi, p11)};
 #else ifdef NUCLEO_411RE
     DW1000 dw_array[NUM_OF_DW_UNITS]= {DW1000(spi, D15), DW1000(spi, D14), DW1000(spi, D9), DW1000(spi, D8)}; //, DW1000(spi, D10)};
 #endif
@@ -133,26 +133,23 @@ int main()
 
     UWBSwarmRing ring(&tracker);
 
+    ring.setRangingCompleteCallback(&printDistancesToConsole);
+
     ring.getRingAddress();
     ring.startRingParticipation();
 
     while (true)
     {
 
-//    	//measureTimesOfFlight(tracker, ul, timer);
-//
-//       const UWB2WayMultiRange::RawRangingResult& raw_result = tracker.measureTimesOfFlight(SLAVE_ADDRESS_OFFSET);
-//
-//       if (raw_result.status == 0)
-//    	   printDistancesToConsole(tracker, raw_result);
+    	ring.rangeNextAgent();
 
-       wait_ms(500);
+       wait_ms(1);
 
 
     }
 }
 
-void printDistancesToConsole(UWB2WayMultiRange& tracker, const UWB2WayMultiRange::RawRangingResult& raw_result){
+void* printDistancesToConsole(UWB2WayMultiRange& tracker, const UWB2WayMultiRange::RawRangingResult& raw_result){
 
 	pc.printf("Measurement Results for %i ----> %i \r\n", raw_result.tracker_address, raw_result.remote_address);
 

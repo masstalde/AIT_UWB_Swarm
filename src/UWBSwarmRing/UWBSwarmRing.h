@@ -17,7 +17,6 @@ const uint8_t ENTRY_ADDRESS = 0;
 class UWBSwarmRing: public UWBProtocol {
 
 public:
-	UWBSwarmRing();
 	UWBSwarmRing(UWB2WayMultiRange* tracker);
 	virtual ~UWBSwarmRing();
 
@@ -26,6 +25,10 @@ public:
 	void registerTracker(UWB2WayMultiRange* tracker);
 	bool getRingAddress();
 	bool startRingParticipation();
+	void rangeNextAgent();
+
+
+	void setRangingCompleteCallback(void* (*pF)(UWB2WayMultiRange&, const UWB2WayMultiRange::RawRangingResult&));
 
 private:
 
@@ -36,22 +39,33 @@ private:
 	        SLAVE_REPLY,
 	        MASTER_REQUEST_2,
 	        SLAVE_REPORT,
+	        RING_TOKEN,
 	        RING_NEW_MEMBER
 	    };
 
-	void startListeningInterrupt();			//start listening for frames
-	void stopInterrupt();			//stop listening for frames, go into blocking mode
-	void sendRingEntryPing();		//send the ping for new ring members
+	void attachInterruptCallbacks();		//start listening for frames
+	void detachInterruptCallbacks();		//stop listening for frames, go into blocking mode
+	void sendRingEntryPing();				//send the ping for new ring members
+	void joinNewAgent();					//Handle request from a new agent
 
 	void receiveFrameCallback();
 	void sentFrameCallback();
 
 
-	void* (*onRangingCompleteCallback)(const UWB2WayMultiRange::RawRangingResult*);		//what to do with the resulted measurements
+	void* (*onRangingCompleteCallback)(UWB2WayMultiRange&, const UWB2WayMultiRange::RawRangingResult&);		//what to do with the resulted measurements
 
 
 	UWB2WayMultiRange* tracker_;
+	DW1000*	masterModule_;
 	Ticker ticker;
+	bool hasToken_;
+	bool isTail_;
+
+	uint64_t master_request_1_timestamp_;
+	uint64_t slave_reply_timestamp_;
+	uint64_t master_request_2_timestamp_;
+	uint64_t timediff_slave_;
+
 
 };
 

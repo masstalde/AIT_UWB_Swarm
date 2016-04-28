@@ -195,6 +195,7 @@ const UWB2WayMultiRange::RawRangingResult& UWB2WayMultiRange::measureTimesOfFlig
         return raw_result_;
     }
 
+
     raw_result_.timeDiffSlave = receivedFrame_.timediff_slave;
     raw_result_.timestamp_master_request_1_recv = receivedFrame_.timestamp_master_request_1_recv;
     raw_result_.timestamp_slave_reply_send = receivedFrame_.timestamp_slave_reply_send;
