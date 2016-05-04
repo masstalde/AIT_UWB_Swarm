@@ -72,6 +72,7 @@ const int MAX_UWB_LINK_FRAME_LENGTH = 1024;
 BufferedSerial pc(USBTX, USBRX, 115200, 1024);           // USB UART Terminal
 SPI spi(DW_MOSI_PIN, DW_MISO_PIN, DW_SCLK_PIN);
 UWBLinkMbed ul(&pc, MAX_UWB_LINK_FRAME_LENGTH);
+DigitalIn addressPins[3] = {DigitalIn(p15), DigitalIn(p14), DigitalIn(p13)};
 
 void send_status_message(UWBLink& ul, char* str, ...);
 void* printDistancesToConsole(UWB2WayMultiRange& tracker, const UWB2WayMultiRange::RawRangingResult& raw_result);
@@ -97,7 +98,8 @@ int main()
 #endif
 
 
-
+    //Get the address of the header board
+    const uint8_t tracker_address = addressPins[0] + (addressPins[1] << 1) + (addressPins[2] << 2);
 
     // Now we can initialize the DW modules
     for (int i = 0; i < NUM_OF_DW_UNITS; ++i)
@@ -122,9 +124,8 @@ int main()
         }
     }
 
-    send_status_message(ul, "Initializing tracker with address %d", TRACKER_ADDRESS);
-
-    UWB2WayMultiRange tracker(TRACKER_ADDRESS);
+    send_status_message(ul, "Initializing tracker with address %d", tracker_address);
+    UWB2WayMultiRange tracker(tracker_address);
 
     for (int i = 0; i < NUM_OF_DW_UNITS; ++i)
     {
