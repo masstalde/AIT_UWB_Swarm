@@ -88,8 +88,11 @@ ifdef $(BUILD_SLAVE)
   CC_FLAGS += -DBUILD_SLAVE
 endif
 
+upload3: all upload2
+	cp $(PROJECT).bin /cygdrive/o/
+	
 upload2: all upload
-	cp $(PROJECT).bin /cygdrive/d/
+	cp $(PROJECT).bin /cygdrive/n/
 
 upload: all
 	cp $(PROJECT).bin /cygdrive/m/

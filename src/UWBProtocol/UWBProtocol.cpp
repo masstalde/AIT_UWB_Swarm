@@ -42,7 +42,6 @@ void UWBProtocol::sendReportFrame(DW1000* dw_ptr, uint8_t remote_address, int64_
     reportFrame_.timestamp_master_request_1_recv = timestamp_master_request_1_recv;
     reportFrame_.timestamp_slave_reply_send = timestamp_slave_reply_send;
     reportFrame_.timestamp_master_request_2_recv = timestamp_master_request_2_recv;
-    dw_ptr->clearSentFlag();
     dw_ptr->sendFrame(reinterpret_cast<uint8_t*>(&reportFrame_), sizeof(reportFrame_));
 }
 

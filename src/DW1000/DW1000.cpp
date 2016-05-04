@@ -269,6 +269,13 @@ void DW1000::startRX() {
     writeRegister8(DW1000_SYS_CTRL, 0x01, 0x01);                    // start listening for preamble by setting the RXENAB bit
 }
 
+void DW1000::startRXDelayed(uint64_t timestamp) {
+
+    writeRegister40(DW1000_DX_TIME, 0, timestamp);                	//write the timestamp on which to send the message
+
+    writeRegister8(DW1000_SYS_CTRL, 0x01, 0x03);                    // start DELAYED listening for preamble by setting the RXENAB and RXDLYE bit
+}
+
 void DW1000::stopTRX() {
     writeRegister8(DW1000_SYS_CTRL, 0, 0x40);                       // disable tranceiver go back to idle mode
 }

@@ -30,10 +30,10 @@ public:
 
     struct RawRangingResult
     {
-        RawRangingResult()
-        : status(OTHER), tracker_address(0), remote_address(0), timeDiffSlave(0)
-        {
-        }
+    	  RawRangingResult()
+    	        : tracker_address(0), remote_address(0),timestamp_master_request_1_recv(0), timestamp_slave_reply_send(0), timestamp_master_request_2_recv(0),  timeDiffSlave(0), status(OTHER)
+    	        {
+    	        }
 
         uint8_t tracker_address;
         uint8_t remote_address;

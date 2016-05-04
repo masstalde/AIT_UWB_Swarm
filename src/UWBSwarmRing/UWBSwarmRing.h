@@ -12,7 +12,7 @@
 
 namespace ait{
 
-const uint8_t ENTRY_ADDRESS = 0;
+const uint8_t TAIL_ADDRESS = 3;
 
 class UWBSwarmRing: public UWBProtocol {
 
@@ -23,8 +23,7 @@ public:
 
 
 	void registerTracker(UWB2WayMultiRange* tracker);
-	bool getRingAddress();
-	bool startRingParticipation();
+	void startRingParticipation();
 	void rangeNextAgent();
 
 
@@ -34,19 +33,15 @@ private:
 
 	enum FrameType
 	    {
-			RING_ENTRY_PING = 0,
-	        MASTER_REQUEST_1,
+	        MASTER_REQUEST_1 = 1,
 	        SLAVE_REPLY,
 	        MASTER_REQUEST_2,
 	        SLAVE_REPORT,
-	        RING_TOKEN,
-	        RING_NEW_MEMBER
+	        RING_TOKEN
 	    };
 
 	void attachInterruptCallbacks();		//start listening for frames
 	void detachInterruptCallbacks();		//stop listening for frames, go into blocking mode
-	void sendRingEntryPing();				//send the ping for new ring members
-	void joinNewAgent();					//Handle request from a new agent
 
 	void receiveFrameCallback();
 	void sentFrameCallback();
@@ -57,9 +52,7 @@ private:
 
 	UWB2WayMultiRange* tracker_;
 	DW1000*	masterModule_;
-	Ticker ticker;
 	bool hasToken_;
-	bool isTail_;
 
 	uint64_t master_request_1_timestamp_;
 	uint64_t slave_reply_timestamp_;

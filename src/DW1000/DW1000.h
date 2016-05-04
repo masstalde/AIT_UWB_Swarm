@@ -106,6 +106,7 @@ class DW1000
         void sendFrame(uint8_t* message, uint16_t length);                                      // send a raw frame (length in bytes)
         void sendDelayedFrame(uint8_t* message, uint16_t length, uint64_t TxTimestamp);
         void startRX();                                                                         // start listening for frames
+        void startRXDelayed(uint64_t timestamp);
         void stopTRX();                                                                         // disable tranceiver go back to idle mode
         static void hardwareReset(PinName reset_pin);
 

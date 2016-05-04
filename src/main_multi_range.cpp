@@ -136,7 +136,6 @@ int main()
 
     ring.setRangingCompleteCallback(&printDistancesToConsole);
 
-    ring.getRingAddress();
     ring.startRingParticipation();
 
     while (true)
