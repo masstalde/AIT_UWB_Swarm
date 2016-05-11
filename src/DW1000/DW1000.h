@@ -110,6 +110,10 @@ class DW1000
         void stopTRX();                                                                         // disable tranceiver go back to idle mode
         static void hardwareReset(PinName reset_pin);
 
+        void resetAll();                                                                        // soft reset the entire DW1000 (some registers stay as they were see User Manual)
+        void loadLDE();                                                                         // load the leading edge detection algorithm to RAM, [IMPORTANT because receiving malfunction may occur] see User Manual LDELOAD on p22 & p158
+
+
         uint8_t readRegister8(uint8_t reg, uint16_t subaddress);                                // expressive methods to read or write the number of bits written in the name
         uint16_t readRegister16(uint8_t reg, uint16_t subaddress);
         uint32_t readRegister32(uint8_t reg, uint16_t subaddress);
@@ -123,10 +127,8 @@ class DW1000
 
 
     private:
-        void loadLDE();                                                                         // load the leading edge detection algorithm to RAM, [IMPORTANT because receiving malfunction may occur] see User Manual LDELOAD on p22 & p158
         void init();
         void resetRX();                                                                         // soft reset only the tranciever part of DW1000
-        void resetAll();                                                                        // soft reset the entire DW1000 (some registers stay as they were see User Manual)
 
         // Interrupt
         InterruptIn* irq;
