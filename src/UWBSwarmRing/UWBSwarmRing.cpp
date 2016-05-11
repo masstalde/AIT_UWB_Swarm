@@ -25,6 +25,9 @@ UWBSwarmRing::UWBSwarmRing(UWB2WayMultiRange* tracker)
   timediff_slave_(0)
 {
 	registerTracker(tracker);
+
+	timer.start();
+	timeOfLastRanging = 0;
 }
 
 UWBSwarmRing::~UWBSwarmRing()
@@ -88,7 +91,7 @@ void UWBSwarmRing::receiveFrameCallback(){
 	}
 	else
 	{
-		//wait_us(1);
+		wait_us(10);
 		masterModule_->startRX();
 	}
 }
@@ -110,7 +113,7 @@ void UWBSwarmRing::rangeNextAgent() {
 	if (!hasToken_)
 		return;
 
-	DEBUG_PRINTF("Have TOKEN, start ranging!\r\n");
+//	DEBUG_PRINTF("Have TOKEN, start ranging!\r\n");
 
 	detachInterruptCallbacks();
 
@@ -125,17 +128,28 @@ void UWBSwarmRing::rangeNextAgent() {
 
 	hasToken_ = false;
 
+	timeMessageBefore = timer.read_us();
 	bool recv = sendRangingFrameBlocking(masterModule_, nextAddress, RING_TOKEN,
 			0.1f);
 	if (!recv)
 		ERROR_PRINTF("Could not send Token!\r\n");
-	else
-		DEBUG_PRINTF("Token sent\r\n");
+//	else
+//		DEBUG_PRINTF("Token sent\r\n");
+	timeMessageAfter = timer.read_us();
 
 	if (onRangingCompleteCallback)
 		this->onRangingCompleteCallback(*tracker_, *raw_result);
 
 	attachInterruptCallbacks();
+
+	uint32_t timeElapsedMs = timer.read_ms() - timeOfLastRanging;
+
+	DEBUG_PRINTF_VA("Time elapsed for entire Loop: %i\r\n", timeElapsedMs);
+	//DEBUG_PRINTF_VA("Time elapsed for single short frame: %i\r\n", timeMessageAfter - timeMessageBefore);
+
+
+
+	timeOfLastRanging = timer.read_ms();
 
 }
 

@@ -54,6 +54,15 @@ private:
 	DW1000*	masterModule_;
 	bool hasToken_;
 
+
+	Timer timer;
+	uint32_t timeOfLastRanging;
+	uint32_t timeMessageBefore;
+	uint32_t timeMessageAfter;
+
+
+
+
 	uint64_t master_request_1_timestamp_;
 	uint64_t slave_reply_timestamp_;
 	uint64_t master_request_2_timestamp_;

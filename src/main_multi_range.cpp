@@ -41,10 +41,10 @@ const int TRACKER_ADDRESS = 0;
 const int NUM_OF_SLAVES = 1;
 const int SLAVE_ADDRESS_OFFSET = 10;
 
-const bool USE_NLOS_SETTINGS = true;
+const bool USE_NLOS_SETTINGS = false;
 
 #ifdef MBED_LPC1768
-	const int NUM_OF_DW_UNITS = 1;
+	const int NUM_OF_DW_UNITS = 4;
 	const PinName DW_RESET_PIN = p15;
 	const PinName DW_MOSI_PIN = p5;
 	const PinName DW_MISO_PIN = p6;
@@ -92,7 +92,7 @@ int main()
     InterruptIn irq(DW_IRQ_PIN);
 
 #ifdef MBED_LPC1768
-    DW1000 dw_array[NUM_OF_DW_UNITS]= {DW1000(spi, &irq, p8)}; //, DW1000(spi, p9), DW1000(spi, p10), DW1000(spi, p11)};
+    DW1000 dw_array[NUM_OF_DW_UNITS]= {DW1000(spi, &irq, p8), DW1000(spi, p9), DW1000(spi, p10), DW1000(spi, p11)};
 #else ifdef NUCLEO_411RE
     DW1000 dw_array[NUM_OF_DW_UNITS]= {DW1000(spi, D15), DW1000(spi, D14), DW1000(spi, D9), DW1000(spi, D8)}; //, DW1000(spi, D10)};
 #endif
@@ -107,13 +107,22 @@ int main()
     	dw_array[i].setEUI(0xFAEDCD01FAEDCD01 + i);                                  // basic methods called to check if we have a working SPI connection
 
         send_status_message(ul, "\r\nUnit %d", i);
-        send_status_message(ul, "\r\nDecaWave 1.0 up and running!");            // Splashscreen
-        send_status_message(ul, "DEVICE_ID register: 0x%X", dw_array[i].getDeviceID());
 
         uint32_t euiLSB = dw_array[i].getEUI();
         uint32_t euiMSB = dw_array[i].getEUI() >> 32;
-        send_status_message(ul, "EUI register: 0x%X%X", euiMSB, euiLSB);
-        //send_status_message(ul, "Voltage: %.2fV\r\n", dw_array[i].getVoltage());
+
+
+        if (euiLSB == (0xFAEDCD01 + i))
+        	send_status_message(ul, "Selftest OK");
+        else
+        {
+        	send_status_message(ul, "Selftest FAILED!");
+        	send_status_message(ul, "DEVICE_ID register: 0x%X", dw_array[i].getDeviceID());
+        	send_status_message(ul, "EUI register: 0x%X%X", euiMSB, euiLSB);
+        	send_status_message(ul, "Voltage: %.2fV\r\n", dw_array[i].getVoltage());
+        }
+
+
 
         // Set NLOS settings (According to DecaWave Application Note APS006)
         if (USE_NLOS_SETTINGS)
@@ -122,9 +131,12 @@ int main()
             DW1000Utils::setNLOSSettings(&dw_array[i], DATA_RATE_SETTING, PRF_SETTING, PREAMBLE_SETTING);
 
         }
+        else
+            DW1000Utils::setLOSSettings(&dw_array[i], DATA_RATE_SETTING, PRF_SETTING, PREAMBLE_SETTING);
+
     }
 
-    send_status_message(ul, "Initializing tracker with address %d", tracker_address);
+    send_status_message(ul, "\r\nInitializing tracker with address %d", tracker_address);
     UWB2WayMultiRange tracker(tracker_address);
 
     for (int i = 0; i < NUM_OF_DW_UNITS; ++i)
@@ -133,9 +145,7 @@ int main()
     }
 
     UWBSwarmRing ring(&tracker);
-
     ring.setRangingCompleteCallback(&printDistancesToConsole);
-
     ring.startRingParticipation();
 
     while (true)
@@ -143,7 +153,7 @@ int main()
 
     	ring.rangeNextAgent();
 
-       wait_ms(1);
+       //wait_ms(1);
 
 
     }
@@ -151,7 +161,7 @@ int main()
 
 void* printDistancesToConsole(UWB2WayMultiRange& tracker, const UWB2WayMultiRange::RawRangingResult& raw_result){
 
-	pc.printf("Measurement Results for %i ----> %i \r\n", raw_result.tracker_address, raw_result.remote_address);
+	pc.printf("\r\nMeasurement Results for %i ----> %i \r\n", raw_result.tracker_address, raw_result.remote_address);
 
 	for (int j = 0; j < tracker.getNumOfModules(); ++j) {
 	                    int64_t timediff_slave = raw_result.timestamp_master_request_1_recv + raw_result.timestamp_master_request_2_recv - 2 * raw_result.timestamp_slave_reply_send;

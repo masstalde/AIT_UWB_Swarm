@@ -53,19 +53,6 @@ public:
         char status_description[64];
     };
 
-//    struct RangingResult
-//    {
-//        RangingResult()
-//        : status(OTHER)
-//        {
-//        }
-//
-//        float primary_tof;
-//        float primary_range;
-//        std::vector<ReceptionStats> stats;
-//        RangingStatus status;
-//    };
-
     UWB2WayMultiRange(uint8_t address);
     ~UWB2WayMultiRange();
 
