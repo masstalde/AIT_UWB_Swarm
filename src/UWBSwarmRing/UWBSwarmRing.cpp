@@ -67,7 +67,7 @@ void UWBSwarmRing::receiveFrameCallback(){
 		switch (receivedFrame_.type)
 		{
 
-		case MASTER_REQUEST_1:				//Start blocking ranging procedure (slave role)
+		case MASTER_REQUEST_1:
 			master_request_1_timestamp_ = masterModule_->getRXTimestamp();
 			sendDelayedRangingFrame(masterModule_, sender_address, SLAVE_REPLY, master_request_1_timestamp_ + ANSWER_DELAY_TIMEUNITS);
 
@@ -122,9 +122,12 @@ void UWBSwarmRing::rangeNextAgent() {
 	else
 		nextAddress = 1;
 
-	raw_result = &(tracker_->measureTimesOfFlight(nextAddress));
+	raw_result = &(tracker_->measureTimesOfFlight(nextAddress, 0.02));
 
-	//if(raw_result->status != UWB2WayMultiRange::RangingStatus::SUCCESS);
+	if(raw_result->status != 0)
+		wait_ms(3000);
+	else
+		DEBUG_PRINTF("\r\nRanging OK\r\n");
 
 	hasToken_ = false;
 
@@ -138,7 +141,7 @@ void UWBSwarmRing::rangeNextAgent() {
 	timeMessageAfter = timer.read_us();
 
 	if (onRangingCompleteCallback)
-		this->onRangingCompleteCallback(*tracker_, *raw_result);
+	//	this->onRangingCompleteCallback(*tracker_, *raw_result);
 
 	attachInterruptCallbacks();
 

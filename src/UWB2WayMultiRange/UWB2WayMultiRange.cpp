@@ -97,28 +97,30 @@ const UWB2WayMultiRange::RawRangingResult& UWB2WayMultiRange::measureTimesOfFlig
 
     
     // Reset transmitter on all modules, start receiver
-    //WAIT AFTER!!! (No idea why)
     for (int i = 0; i < moduleCounter_; ++i)
     {
-        dw_vector_.at(i)->stopTRX();
-        dw_vector_.at(i)->startRX();
+    	dw_vector_.at(i)->stopTRX();
+    	dw_vector_.at(i)->startRX();
     }
-    wait_us(100);
 
     float timeout_time = timer_.read() + timeout;
 
+    uint32_t timeA = timer_.read_us();
     // Sending Master Request 1, RX is re-enabled!
-    //DEBUG_PRINTF_VA("Sending master request 1 to address %d...\r\n", remote_address);
     bool send_status = sendRangingFrameBlocking(primary_dw, remote_address, MASTER_REQUEST_1, timeout_time - timer_.read(), &raw_result_.timestamp_master_request_1.at(0));
     if (!send_status)
     {
-        ERROR_PRINTF("Unable to send master request 1 within timeout\r\n");
-        raw_result_.status = NO_MASTER_REQUEST_1;
-        return raw_result_;
+    	ERROR_PRINTF("\r\nUnable to send master request 1 within timeout\r\n");
+    	raw_result_.status = NO_MASTER_REQUEST_1;
+    	return raw_result_;
     }
+    uint32_t timeB = timer_.read_us();
+
+    //DEBUG_PRINTF_VA("\r\n Time for sending MasterReq1:			t= %i us\r\n", timeB-timeA);
+
     
+    timeA = timer_.read_us();
     //Receive Master Request 1 on secondary Modules
-    //DEBUG_PRINTF("Waiting for master request 1 on secondaries ...\r\n");
     for (int i = 1; i < moduleCounter_; ++i)
     {
         bool recv_status = receiveMasterFrameBlocking(dw_vector_.at(i), remote_address, MASTER_REQUEST_1, timeout_time - timer_.read(), &raw_result_.timestamp_master_request_1.at(i), NULL);
@@ -129,11 +131,12 @@ const UWB2WayMultiRange::RawRangingResult& UWB2WayMultiRange::measureTimesOfFlig
             strcpy(raw_result_.status_description, "Unable to receive master request 1 on secondary module");
             return raw_result_;
         }
-        //DEBUG_PRINTF_VA("timestamp_master_request_1[%d]: %lu\r\n", i, raw_result_.timestamp_master_request_1[i]);
     }
+    timeB = timer_.read_us();
+
+    //DEBUG_PRINTF_VA("\r\n Time for 3x reception of MasterReq1:		t= %i us\r\n", timeB-timeA);
 
     // Waiting for slave reply on Master - RX is re-enabled after every received frame!
-    //DEBUG_PRINTF("Waiting for slave reply ...\r\n");
     bool recv_status = receiveSlaveFrameBlocking(primary_dw, SLAVE_REPLY, timeout_time - timer_.read(), &raw_result_.timestamp_slave_reply.at(0), stats1);
     if (!recv_status)
     {
@@ -153,7 +156,6 @@ const UWB2WayMultiRange::RawRangingResult& UWB2WayMultiRange::measureTimesOfFlig
             strcpy(raw_result_.status_description, "Unable to receive slave reply for secondary module");
             return raw_result_;
         }
-        //DEBUG_PRINTF_VA("timestamp_slave_reply[%d]: %lu\r\n", i, raw_result_.timestamp_slave_reply[i]);
     }
 
     // Sending master request 2
