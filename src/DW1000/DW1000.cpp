@@ -51,7 +51,7 @@ void DW1000::init(){
     //Those values are for the 110kbps mode (5, 16MHz, 1024 Symbols) and are quite complete
     writeRegister16(DW1000_AGC_CTRL, 0x04, 0x8870);             //AGC_TUNE1 for 16MHz PRF
     writeRegister32(DW1000_AGC_CTRL, 0x0C, 0x2502A907);         //AGC_TUNE2 (Universal)
-    writeRegister16(DW1000_AGC_CTRL, 0x12, 0x0055);             //AGC_TUNE3 (Universal)
+    writeRegister16(DW1000_AGC_CTRL, 0x12, 0x0035);             //AGC_TUNE3 (Universal)
 
     writeRegister16(DW1000_DRX_CONF, 0x02, 0x000A);             //DRX_TUNE0b for 110kbps
     writeRegister16(DW1000_DRX_CONF, 0x04, 0x0087);             //DRX_TUNE1a for 16MHz PRF
@@ -59,8 +59,8 @@ void DW1000::init(){
     writeRegister32(DW1000_DRX_CONF, 0x08, 0x351A009A);         //PAC size for 1024 symbols preamble & 16MHz PRF
     //writeRegister32(DW1000_DRX_CONF, 0x08, 0x371A011D);               //PAC size for 2048 symbols preamble
 
-    writeRegister8 (DW1000_LDE_CTRL, 0x0806, 0xD);              //LDE_CFG1
-    writeRegister16(DW1000_LDE_CTRL, 0x1806, 0x1607);           //LDE_CFG2 for 16MHz PRF
+    writeRegister8 (DW1000_LDE_CTRL, 0x0806, 0x6D);             //LDE_CFG1
+    writeRegister16(DW1000_LDE_CTRL, 0x1806, 0x1607);           //LDE_CFG2 for 16MHz PRF and LOS
 
     writeRegister32(DW1000_TX_POWER, 0, 0x28282828);            //Power for channel 5
 
