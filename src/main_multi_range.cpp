@@ -74,9 +74,11 @@ SPI spi(DW_MOSI_PIN, DW_MISO_PIN, DW_SCLK_PIN);
 UWBLinkMbed ul(&pc, MAX_UWB_LINK_FRAME_LENGTH);
 DigitalIn addressPins[3] = {DigitalIn(p15), DigitalIn(p14), DigitalIn(p13)};
 
+extern "C" void mbed_reset();
 void send_status_message(UWBLink& ul, char* str, ...);
 void* printDistancesToConsole(UWB2WayMultiRange& tracker, const UWB2WayMultiRange::RawRangingResult& raw_result);
 bool measureTimesOfFlight(UWB2WayMultiRange& tracker, UWBLink& ul, Timer& timer, float ranging_timeout = 0.1f);
+void consoleHandler();
 
 int main()
 {
@@ -90,6 +92,9 @@ int main()
     timer.start();
 
     InterruptIn irq(DW_IRQ_PIN);
+
+    pc.attachRxCallback(&consoleHandler);
+
 
 #ifdef MBED_LPC1768
     DW1000 dw_array[NUM_OF_DW_UNITS]= {DW1000(spi, &irq, p8), DW1000(spi, p9), DW1000(spi, p10), DW1000(spi, p11)};
@@ -175,6 +180,19 @@ void* printDistancesToConsole(UWB2WayMultiRange& tracker, const UWB2WayMultiRang
 	                    pc.printf("%d.%d - %d> range = %.2f, tof = %.2e \r\n", raw_result.tracker_address, j, raw_result.remote_address, range, tof);
 	                }
 	pc.printf("\r\n");
+}
+
+void consoleHandler() {
+
+	char command = pc.getc();
+	switch (command) {
+
+		case 'X':
+			mbed_reset();
+			break;
+	}
+
+//	pc.printf(&command);
 }
 
 void send_status_message(UWBLink& ul, char* str, ...)

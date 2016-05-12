@@ -26,14 +26,14 @@
 #include <stdarg.h>
 
 BufferedSerial::BufferedSerial(PinName tx, PinName rx, uint32_t buf_size)
-    : RawSerial(tx, rx) , _rxbuf(buf_size), _txbuf(buf_size), _buffered_bytes(0)
+    : RawSerial(tx, rx) , _rxbuf(buf_size), _txbuf(buf_size), _buffered_bytes(0), rxCallback(NULL)
 {
     RawSerial::attach(this, &BufferedSerial::rxIrq, Serial::RxIrq);
     this->_buf_size = buf_size;
 }
 
 BufferedSerial::BufferedSerial(PinName tx, PinName rx, int baud_rate, uint32_t buf_size)
-    : RawSerial(tx, rx) , _rxbuf(buf_size), _txbuf(buf_size), _buffered_bytes(0)
+    : RawSerial(tx, rx) , _rxbuf(buf_size), _txbuf(buf_size), _buffered_bytes(0), rxCallback(NULL)
 {
     baud(baud_rate);
     RawSerial::attach(this, &BufferedSerial::rxIrq, Serial::RxIrq);
@@ -154,6 +154,8 @@ void BufferedSerial::rxIrq(void)
     // read from the peripheral and make sure something is available
     if (serial_readable(&_serial)) {
         _rxbuf = serial_getc(&_serial); // if so load them into a buffer
+        if (rxCallback)
+        	rxCallback();
     }
 }
 
@@ -174,6 +176,12 @@ void BufferedSerial::prime(void)
         BufferedSerial::txIrq();                // only write to hardware in one place
         RawSerial::attach(this, &BufferedSerial::txIrq, RawSerial::TxIrq);
     }
+}
+
+void BufferedSerial::attachRxCallback(void (*fptr)(void))
+{
+	if (fptr)
+		rxCallback = fptr;
 }
 
 

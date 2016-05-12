@@ -81,6 +81,8 @@ private:
     void txIrq(void);
     void prime(void);
 
+    void (*rxCallback)(void);
+
 public:
     /** Create a BufferedSerial port, connected to the specified transmit and receive pins
      *  @param tx Transmit pin
@@ -151,6 +153,12 @@ public:
      *  @return The number of bytes written to the Serial Port Buffer
      */
     virtual ssize_t write(const void *s, std::size_t length);
+
+    /** Attaches a callback function to be called on reception, after buffer is written.
+     *
+     */
+    void attachRxCallback(void (*fptr)(void));
+
 };
 
 #endif
