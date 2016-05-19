@@ -10,7 +10,8 @@ extern BufferedSerial pc;
 const DW1000Utils::PrfSetting PRF_SETTING = DW1000Utils::PRF_16_MHz;
 
 const DW1000Utils::DataRateSetting DATA_RATE_SETTING = DW1000Utils::RATE_850_kbps;
-const uint32_t PREAMBLE_SETTING = DW1000Utils::PREAMBLE_LENGTH_1024;
+const uint32_t PREAMBLE_SETTING = DW1000Utils::PREAMBLE_LENGTH_512;
+const DW1000Utils::SfdSetting SFD_SETTING = DW1000Utils::SFD_decawave;
 //#define ANSWER_DELAY_US_OVERWRITE 1500
 
 //const DW1000Utils::DataRateSetting DATA_RATE_SETTING = DW1000Utils::RATE_110_kbps;
@@ -31,7 +32,7 @@ const uint32_t PREAMBLE_SETTING = DW1000Utils::PREAMBLE_LENGTH_1024;
 	#define ANSWER_DELAY_US_SLAVE	3000
 #else
 	//#define ANSWER_DELAY_US_MASTER	3000
-	#define ANSWER_DELAY_US_MASTER	2000
+	#define ANSWER_DELAY_US_MASTER	1700
 #endif
 
 

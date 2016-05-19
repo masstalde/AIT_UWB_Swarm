@@ -32,11 +32,16 @@ public:
         RATE_6_8_Mbps,
     };
 
+    enum SfdSetting{
+    	SFD_standard = 0,
+    	SFD_decawave
+    };
+
     static void setStandardChannel(DW1000* dw_ptr, PrfSetting prf_setting)
     {
     	//Standard channel is 5, so all settings are for channel 5
     	if (prf_setting == PRF_16_MHz){
-    	    dw_ptr->writeRegister32(DW1000_TX_POWER, 0, 0x68686868);            //Power for channel 5
+    	    dw_ptr->writeRegister32(DW1000_TX_POWER, 0, 0x28282828);            //Power for channel 5
     	    //dw_ptr->writeRegister32(DW1000_TX_POWER, 0, 0x1F1F1F1F);            //Power for channel 5
     	}
     	else
@@ -59,9 +64,9 @@ public:
         dw_ptr->writeRegister8(DW1000_SYS_CFG, 3, 0x20);    // enable auto reenabling receiver after error
     }
 
-    static void setDWSFD(DW1000* dw_ptr){
-    	uint32_t dwsfd_value = (1 << 17);
-    	uint32_t dwsfd_mask = (1 << 17);
+    static void setDWSFD(DW1000* dw_ptr, DataRateSetting rate_setting = RATE_850_kbps){
+    	uint32_t dwsfd_value = (1 << 17) | (1 << 20) | (1 << 21);			// set register DWSFD, TNSSFD and RNSSFD
+    	uint32_t dwsfd_mask = (1 << 17) | (1 << 20) | (1 << 21);
 
     	//Select the proprietary DW SFD
         uint32_t dwsfd_ctrl = dw_ptr->readRegister32(DW1000_CHAN_CTRL, 0x00);
@@ -71,6 +76,15 @@ public:
 
         //choose SFD length 16
         dw_ptr->writeRegister8(0x21,0x00,0x0F);
+
+        if (rate_setting == RATE_110_kbps)
+                {
+                    dw_ptr->writeRegister16(DW1000_DRX_CONF, 0x02, 0x0016);     // DRX_TUNE0b for 110 kbps and NSSFD
+                }
+                else if (rate_setting == RATE_850_kbps)
+                {
+                    dw_ptr->writeRegister16(DW1000_DRX_CONF, 0x02, 0x0006);     // DRX_TUNE0b for 850 kbps and NSSFD
+                }
     }
 
     // Set pulse repetition frequency
@@ -198,17 +212,18 @@ public:
 
     // Improved settings for direct path detection in non-line-of-sight environments.
     // See DecaWave Application Note APS006.
-    static void setNLOSSettings(DW1000* dw_ptr, DataRateSetting rate_setting = RATE_850_kbps, PrfSetting prf_setting = PRF_16_MHz, uint32_t preamble_setting = PREAMBLE_LENGTH_1024)
+    static void setNLOSSettings(DW1000* dw_ptr, DataRateSetting rate_setting = RATE_850_kbps, PrfSetting prf_setting = PRF_16_MHz, uint32_t preamble_setting = PREAMBLE_LENGTH_1024, SfdSetting sfd_setting = SFD_standard)
     {
     	dw_ptr->stopTRX();
-
-    	if (rate_setting != RATE_110_kbps)
-    	        	setDWSFD(dw_ptr);
+        dw_ptr->resetAll();
 
     	setStandardChannel(dw_ptr, prf_setting);
         setDataRate(dw_ptr, rate_setting);
         setPulseRepetitionFrequency(dw_ptr, prf_setting);
         setPreambleLength(dw_ptr, preamble_setting);
+
+        if (rate_setting != RATE_110_kbps && sfd_setting == SFD_decawave)
+        	setDWSFD(dw_ptr, rate_setting);
 
         //Set the noise threshold according to Decawave Paper aps006.
         // Setting for Noise Threshold Multiplier 1
@@ -228,7 +243,9 @@ public:
         if (preamble_setting == PREAMBLE_LENGTH_256 || preamble_setting == PREAMBLE_LENGTH_512)
         {
         	if(prf_setting == PRF_16_MHz)
-        		 dw_ptr->writeRegister32(DW1000_DRX_CONF, 0x08, 0x331A0052);         //PAC size for 256 symbols preamble & 16MHz PRF
+        		 dw_ptr->writeRegister32(DW1000_DRX_CONF, 0x08, 0x331A0052);        	//PAC size 16 for 256 symbols preamble & 16MHz PRF
+        		//dw_ptr->writeRegister32(DW1000_DRX_CONF, 0x08, 0x351A009A);			//alternate (longer) PAC size 32 for 256 symbols preamble & 16MHz PRF !!DOES NOT WORK!!
+        		//dw_ptr->writeRegister32(DW1000_DRX_CONF, 0x08, 0x371A011D);       	//EVEN LONGER PAC size 64 for 256 symbols preamble & 16MHz PRF !!DOES NOT WORK!!
         	else
         		dw_ptr->writeRegister32(DW1000_DRX_CONF, 0x08, 0x333B00BE);
         }//PAC size for 256 symbols preamble & 64MHz PRF
@@ -239,23 +256,24 @@ public:
         	else
         		dw_ptr->writeRegister32(DW1000_DRX_CONF, 0x08, 0x353B015E);			//PAC size for 1024 symbols preamble & 64MHz PRF
         }
+
+        dw_ptr->loadLDE();
         dw_ptr->startRX();
     }
 
     // Default settings for line-of-sight environments
-    static void setLOSSettings(DW1000* dw_ptr, DataRateSetting rate_setting = RATE_850_kbps, PrfSetting prf_setting = PRF_16_MHz, uint32_t preamble_setting = PREAMBLE_LENGTH_1024)
+    static void setLOSSettings(DW1000* dw_ptr, DataRateSetting rate_setting = RATE_850_kbps, PrfSetting prf_setting = PRF_16_MHz, uint32_t preamble_setting = PREAMBLE_LENGTH_1024, SfdSetting sfd_setting = SFD_standard)
     {
         dw_ptr->stopTRX();
         dw_ptr->resetAll();
-
-
-//        if (rate_setting != RATE_110_kbps)
-//        	setDWSFD(dw_ptr);
 
     	setStandardChannel(dw_ptr, prf_setting);
         setDataRate(dw_ptr, rate_setting);
         setPulseRepetitionFrequency(dw_ptr, prf_setting);
         setPreambleLength(dw_ptr, preamble_setting);
+
+        if (rate_setting != RATE_110_kbps && sfd_setting == SFD_decawave)
+        	setDWSFD(dw_ptr, rate_setting);
 
         //Set noise threshold according to the DW1000 user manual
         // Setting for Noise Threshold Multiplier 1
@@ -270,18 +288,23 @@ public:
             dw_ptr->writeRegister16(DW1000_LDE_CTRL, 0x1806, 0x0607);           // LDE_CFG2 for 64 MHz PRF
         }
 
-        //PAC size
+        //PAC size, setting the DRX_TUNE2 register accoridng to recommendation from user manual p. 32
         if (preamble_setting == PREAMBLE_LENGTH_256 || preamble_setting == PREAMBLE_LENGTH_512)
+        {
         	if(prf_setting == PRF_16_MHz)
-        		dw_ptr->writeRegister32(DW1000_DRX_CONF, 0x08, 0x331A0052);         //PAC size for 256 symbols preamble & 16MHz PRF
+        		//dw_ptr->writeRegister32(DW1000_DRX_CONF, 0x08, 0x331A0052);       //PAC size 16 for 256 symbols preamble & 16MHz PRF
+        		dw_ptr->writeRegister32(DW1000_DRX_CONF, 0x08, 0x351A009A);		//alternate (longer) PAC size 32 for 1024 symbols preamble & 16MHz PRF
+        		//dw_ptr->writeRegister32(DW1000_DRX_CONF, 0x08, 0x371A011D);       //EVEN LONGER PAC size 64 for >1536 symbols preamble & 16MHz PRF
         	else
-        		dw_ptr->writeRegister32(DW1000_DRX_CONF, 0x08, 0x333B00BE);         //PAC size for 256 symbols preamble & 64MHz PRF
+        		dw_ptr->writeRegister32(DW1000_DRX_CONF, 0x08, 0x333B00BE);
+        }//PAC size for 256 symbols preamble & 64MHz PRF
         if (preamble_setting == PREAMBLE_LENGTH_1024)
+        {
         	if (prf_setting == PRF_16_MHz)
         		dw_ptr->writeRegister32(DW1000_DRX_CONF, 0x08, 0x351A009A);			//PAC size for 1024 symbols preamble & 16MHz PRF
         	else
         		dw_ptr->writeRegister32(DW1000_DRX_CONF, 0x08, 0x353B015E);			//PAC size for 1024 symbols preamble & 64MHz PRF
-
+        }
         dw_ptr->loadLDE();
         dw_ptr->startRX();
 
