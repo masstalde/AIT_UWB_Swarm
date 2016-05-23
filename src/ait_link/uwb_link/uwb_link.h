@@ -32,6 +32,13 @@ namespace ait {
       str_length_ = strlen(str);
     }
 
+    virtual UWBMessageString operator= (const char* str){
+    	str_ = str;
+    	str_length_ = strlen(str);
+
+    	return *this;
+    }
+
     virtual int getSize() const {
       return str_length_ + 1;
     }
