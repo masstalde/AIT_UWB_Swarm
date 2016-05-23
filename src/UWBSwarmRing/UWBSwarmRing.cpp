@@ -57,20 +57,16 @@ void UWBSwarmRing::startRingParticipation() {
 
 //Routine executed after DW1000 triggered the Rx interrupt. No further Rx interrupts are generated during this routine! (b/c Flag clears after)
 void UWBSwarmRing::receiveFrameCallback(){
-
 	masterModule_->readRegister(DW1000_RX_BUFFER, 0, reinterpret_cast<uint8_t*>(&receivedFrame_), masterModule_->getFramelength());
 
 	if (receivedFrame_.remote_address == address_){
-
         uint8_t sender_address = receivedFrame_.address;
 
 		switch (receivedFrame_.type)
 		{
-
 		case MASTER_REQUEST_1:
 			master_request_1_timestamp_ = masterModule_->getRXTimestamp();
 			sendDelayedRangingFrame(masterModule_, sender_address, SLAVE_REPLY, master_request_1_timestamp_ + ANSWER_DELAY_TIMEUNITS);
-
         	break;
 
 		case MASTER_REQUEST_2:
@@ -78,15 +74,11 @@ void UWBSwarmRing::receiveFrameCallback(){
         	correctTimestamps(&master_request_1_timestamp_, &slave_reply_timestamp_, &master_request_2_timestamp_);
         	timediff_slave_ = -2 * slave_reply_timestamp_ + master_request_1_timestamp_ + master_request_2_timestamp_;
             sendReportFrame(masterModule_, sender_address, timediff_slave_, master_request_1_timestamp_, slave_reply_timestamp_, master_request_2_timestamp_);
-
             break;
 
 		case RING_TOKEN:
-
 				hasToken_ = true;
-
 			break;
-
 		}
 	}
 	else
@@ -113,8 +105,6 @@ void UWBSwarmRing::rangeNextAgent() {
 	if (!hasToken_)
 		return;
 
-//	DEBUG_PRINTF("Have TOKEN, start ranging!\r\n");
-
 	detachInterruptCallbacks();
 
 	if ((uint8_t)address_ != (uint8_t)TAIL_ADDRESS)
@@ -127,7 +117,9 @@ void UWBSwarmRing::rangeNextAgent() {
 	if(raw_result->status != 0)
 		wait_ms(3000);
 	else
+	{
 		DEBUG_PRINTF("\r\nRanging OK\r\n");
+	}
 
 	hasToken_ = false;
 
@@ -136,21 +128,19 @@ void UWBSwarmRing::rangeNextAgent() {
 			0.1f);
 	if (!recv)
 		ERROR_PRINTF("Could not send Token!\r\n");
-//	else
-//		DEBUG_PRINTF("Token sent\r\n");
+
+
 	timeMessageAfter = timer.read_us();
 
 	if (onRangingCompleteCallback)
-	//	this->onRangingCompleteCallback(*tracker_, *raw_result);
+		this->onRangingCompleteCallback(*tracker_, *raw_result);
 
 	attachInterruptCallbacks();
 
 	uint32_t timeElapsedMs = timer.read_ms() - timeOfLastRanging;
 
-	DEBUG_PRINTF_VA("Time elapsed for entire Loop: %i\r\n", timeElapsedMs);
+	//DEBUG_PRINTF_VA("Time elapsed for entire Loop: %i\r\n", timeElapsedMs);
 	//DEBUG_PRINTF_VA("Time elapsed for single short frame: %i\r\n", timeMessageAfter - timeMessageBefore);
-
-
 
 	timeOfLastRanging = timer.read_ms();
 

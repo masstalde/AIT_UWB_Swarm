@@ -25,16 +25,7 @@ const DW1000Utils::SfdSetting SFD_SETTING = DW1000Utils::SFD_decawave;
 //#undef _DEBUG
 #define _DEBUG 1
 #define PRINT_ERRORS 1 
-#define SLAVE_REPLY_WITH_STATS 0
-#define BUILD_SLAVE 0
-
-#if BUILD_SLAVE
-	#define ANSWER_DELAY_US_SLAVE	3000
-#else
-	//#define ANSWER_DELAY_US_MASTER	3000
-	#define ANSWER_DELAY_US_MASTER	1700
-#endif
-
+#define ANSWER_DELAY_US_MASTER	1700
 
 #if _DEBUG
     #ifndef _DEBUG_PC_DEFINED

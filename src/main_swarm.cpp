@@ -1,17 +1,9 @@
 #include "settings.h"
-
-#if not BUILD_SLAVE
-
 #include <stdarg.h>
 #include <mbed.h>
 #include <DW1000.h>
 #include <DW1000Utils.h>
-
-
-//#include <mavlink_bridge/mavlink_bridge.h>
-
 #include <ait_link/uwb_link/uwb_link_impl.h>
-
 
 #include "BufferedSerial.h"
 #include "UWB2WayMultiRange.h"
@@ -24,9 +16,6 @@ enum CommMode {
 
 
 using ait::UWB2WayMultiRange;
-
-//#define MEASURE_UWB_RANGING_RATE 1
-
 using ait::UWBLink;
 using ait::UWBLinkMbed;
 using ait::UWBMessageString;
@@ -36,15 +25,11 @@ using ait::UWBSwarmRing;
 
 
 const int SPI_FREQUENCY = 5000000;
-
-const int TRACKER_ADDRESS = 0;
-const int NUM_OF_SLAVES = 1;
 const int SLAVE_ADDRESS_OFFSET = 10;
-
 const bool USE_NLOS_SETTINGS = false;
 
 #ifdef MBED_LPC1768
-	const int NUM_OF_DW_UNITS = 4;
+	const int NUM_OF_DW_UNITS = 1;
 	const PinName DW_RESET_PIN = p15;
 	const PinName DW_MOSI_PIN = p5;
 	const PinName DW_MISO_PIN = p6;
@@ -76,6 +61,8 @@ DigitalIn addressPins[3] = {DigitalIn(p15), DigitalIn(p14), DigitalIn(p13)};
 
 extern "C" void mbed_reset();
 void send_status_message(UWBLink& ul, char* str, ...);
+void* sendMeasurementsToSerial(UWB2WayMultiRange& tracker, const UWB2WayMultiRange::RawRangingResult& raw_result);
+void* sendStatusStringToSerial(UWB2WayMultiRange& tracker, const UWB2WayMultiRange::RawRangingResult& raw_result);
 void* printDistancesToConsole(UWB2WayMultiRange& tracker, const UWB2WayMultiRange::RawRangingResult& raw_result);
 bool measureTimesOfFlight(UWB2WayMultiRange& tracker, UWBLink& ul, Timer& timer, float ranging_timeout = 0.1f);
 void consoleHandler();
@@ -97,7 +84,7 @@ int main()
 
 
 #ifdef MBED_LPC1768
-    DW1000 dw_array[NUM_OF_DW_UNITS]= {DW1000(spi, &irq, p8), DW1000(spi, p9), DW1000(spi, p10), DW1000(spi, p11)};
+    DW1000 dw_array[NUM_OF_DW_UNITS]= {DW1000(spi, &irq, p8)};//, DW1000(spi, p9), DW1000(spi, p10), DW1000(spi, p11)};
 #else ifdef NUCLEO_411RE
     DW1000 dw_array[NUM_OF_DW_UNITS]= {DW1000(spi, D15), DW1000(spi, D14), DW1000(spi, D9), DW1000(spi, D8)}; //, DW1000(spi, D10)};
 #endif
@@ -133,11 +120,11 @@ int main()
         if (USE_NLOS_SETTINGS)
         {
             send_status_message(ul, "Setting NLOS configuration for Unit %d", i);
-            DW1000Utils::setNLOSSettings(&dw_array[i], DATA_RATE_SETTING, PRF_SETTING, PREAMBLE_SETTING);
+            DW1000Utils::setNLOSSettings(&dw_array[i], DATA_RATE_SETTING, PRF_SETTING, PREAMBLE_SETTING, SFD_SETTING);
 
         }
         else
-            DW1000Utils::setLOSSettings(&dw_array[i], DATA_RATE_SETTING, PRF_SETTING, PREAMBLE_SETTING);
+            DW1000Utils::setLOSSettings(&dw_array[i], DATA_RATE_SETTING, PRF_SETTING, PREAMBLE_SETTING, SFD_SETTING);
 
     }
 
@@ -150,7 +137,7 @@ int main()
     }
 
     UWBSwarmRing ring(&tracker);
-    ring.setRangingCompleteCallback(&printDistancesToConsole);
+    ring.setRangingCompleteCallback(&sendMeasurementsToSerial);
     ring.startRingParticipation();
 
     while (true)
@@ -163,6 +150,51 @@ int main()
 
     }
 }
+
+void* sendMeasurementsToSerial(UWB2WayMultiRange& tracker,
+		const UWB2WayMultiRange::RawRangingResult& raw_result) {
+
+	if (raw_result.status == UWB2WayMultiRange::SUCCESS) {
+		UWBMessageMultiRange msg_multi_range(tracker.getAddress(),
+				raw_result.remote_address);
+
+		for (int j = 0; j < tracker.getNumOfModules(); ++j) {
+			msg_multi_range.addModuleMeasurement(
+					raw_result.timestamp_master_request_1[j],
+					raw_result.timestamp_slave_reply[j],
+					raw_result.timestamp_master_request_2[j]);
+		}
+
+		msg_multi_range.setSlaveMeasurement(
+				raw_result.timestamp_master_request_1_recv,
+				raw_result.timestamp_slave_reply_send,
+				raw_result.timestamp_master_request_2_recv);
+
+		UWBMessage msg(UWBMessage::UWB_MESSAGE_TYPE_MULTI_RANGE, &msg_multi_range);
+		if (!ul.sendMessage(msg)) {
+			ERROR_PRINTF("\r\nSending UWBLink message failed\r\n");
+		}
+	}
+}
+
+void* sendStatusStringToSerial(UWB2WayMultiRange& tracker, const UWB2WayMultiRange::RawRangingResult& raw_result){
+
+	UWBMessageString msg_str;
+
+	if (raw_result.status == UWB2WayMultiRange::SUCCESS){
+		msg_str = "Ranging OK";
+	}
+	else{
+		msg_str = "Ranging failed!"; //strcat("Ranging failed: ", raw_result.status_description);
+	}
+
+	UWBMessage msg(UWBMessage::UWB_MESSAGE_TYPE_STATUS, &msg_str);
+	if (!ul.sendMessage(msg)) {
+		DEBUG_PRINTF("\r\nSending UWBLink message failed\r\n");
+	}
+
+}
+
 
 void* printDistancesToConsole(UWB2WayMultiRange& tracker, const UWB2WayMultiRange::RawRangingResult& raw_result){
 
@@ -191,8 +223,6 @@ void consoleHandler() {
 			mbed_reset();
 			break;
 	}
-
-//	pc.printf(&command);
 }
 
 void send_status_message(UWBLink& ul, char* str, ...)
@@ -231,7 +261,7 @@ bool measureTimesOfFlight(UWB2WayMultiRange& tracker, UWBLink& ul, Timer& timer,
 #endif
 
     bool any_success = false;
-    for (int i = 0; i < NUM_OF_SLAVES; i++) {
+    for (int i = 0; i < 1; i++) {
         uint8_t remote_address = SLAVE_ADDRESS_OFFSET + i;
         const UWB2WayMultiRange::RawRangingResult& raw_result = tracker.measureTimesOfFlight(remote_address, ranging_timeout);
         if (raw_result.status == UWB2WayMultiRange::SUCCESS) {
@@ -298,4 +328,3 @@ bool measureTimesOfFlight(UWB2WayMultiRange& tracker, UWBLink& ul, Timer& timer,
 
     return any_success;
 }
-#endif

@@ -20,12 +20,9 @@ public:
 	UWBSwarmRing(UWB2WayMultiRange* tracker);
 	virtual ~UWBSwarmRing();
 
-
-
 	void registerTracker(UWB2WayMultiRange* tracker);
 	void startRingParticipation();
 	void rangeNextAgent();
-
 
 	void setRangingCompleteCallback(void* (*pF)(UWB2WayMultiRange&, const UWB2WayMultiRange::RawRangingResult&));
 
@@ -46,22 +43,16 @@ private:
 	void receiveFrameCallback();
 	void sentFrameCallback();
 
-
 	void* (*onRangingCompleteCallback)(UWB2WayMultiRange&, const UWB2WayMultiRange::RawRangingResult&);		//what to do with the resulted measurements
-
 
 	UWB2WayMultiRange* tracker_;
 	DW1000*	masterModule_;
 	bool hasToken_;
 
-
 	Timer timer;
 	uint32_t timeOfLastRanging;
 	uint32_t timeMessageBefore;
 	uint32_t timeMessageAfter;
-
-
-
 
 	uint64_t master_request_1_timestamp_;
 	uint64_t slave_reply_timestamp_;
