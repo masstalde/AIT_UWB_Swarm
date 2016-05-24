@@ -12,19 +12,18 @@
 
 namespace ait{
 
-const uint8_t TAIL_ADDRESS = 3;
-
 class UWBSwarmRing: public UWBProtocol {
 
 public:
-	UWBSwarmRing(UWB2WayMultiRange* tracker);
+	UWBSwarmRing(uint8_t numOfAgents = 3, UWB2WayMultiRange* tracker = NULL);
 	virtual ~UWBSwarmRing();
 
 	void registerTracker(UWB2WayMultiRange* tracker);
+	UWB2WayMultiRange* getTracker(){ return tracker_;}
 	void startRingParticipation();
 	void rangeNextAgent();
 
-	void setRangingCompleteCallback(void* (*pF)(UWB2WayMultiRange&, const UWB2WayMultiRange::RawRangingResult&));
+	void setRangingCompleteCallback(void (*pF)(const UWB2WayMultiRange::RawRangingResult&));
 
 private:
 
@@ -43,10 +42,11 @@ private:
 	void receiveFrameCallback();
 	void sentFrameCallback();
 
-	void* (*onRangingCompleteCallback)(UWB2WayMultiRange&, const UWB2WayMultiRange::RawRangingResult&);		//what to do with the resulted measurements
+	void (*onRangingCompleteCallback)(const UWB2WayMultiRange::RawRangingResult&);		//what to do with the resulted measurements
 
 	UWB2WayMultiRange* tracker_;
 	DW1000*	masterModule_;
+	uint8_t numberOfAgents_;
 	bool hasToken_;
 
 	Timer timer;
@@ -58,8 +58,6 @@ private:
 	uint64_t slave_reply_timestamp_;
 	uint64_t master_request_2_timestamp_;
 	uint64_t timediff_slave_;
-
-
 };
 
 } /* namespace ait */

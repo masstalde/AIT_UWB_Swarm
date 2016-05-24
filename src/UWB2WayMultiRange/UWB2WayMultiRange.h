@@ -53,7 +53,7 @@ public:
         char status_description[64];
     };
 
-    UWB2WayMultiRange(uint8_t address);
+    UWB2WayMultiRange(uint8_t address = 0);
     ~UWB2WayMultiRange();
 
     void addModule(DW1000* dw_ptr);

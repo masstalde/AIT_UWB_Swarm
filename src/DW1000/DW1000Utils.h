@@ -37,6 +37,17 @@ public:
     	SFD_decawave
     };
 
+    static bool runStartupTest(DW1000& dw_module, uint8_t number = 0){
+
+    	dw_module.setEUI(0xFAEDCD01FAEDCD01 + number);                                  // basic methods called to check if we have a working SPI connection
+    	uint32_t euiLSB = dw_module.getEUI();
+    	uint32_t euiMSB = dw_module.getEUI() >> 32;
+
+        if (euiLSB == (0xFAEDCD01 + number))
+        	return true;
+        else return false;
+    }
+
     static void setStandardChannel(DW1000* dw_ptr, PrfSetting prf_setting)
     {
     	//Standard channel is 5, so all settings are for channel 5

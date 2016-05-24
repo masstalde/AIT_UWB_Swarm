@@ -13,18 +13,21 @@
 
 namespace ait {
 
-UWBSwarmRing::UWBSwarmRing(UWB2WayMultiRange* tracker)
+UWBSwarmRing::UWBSwarmRing(uint8_t numOfAgents, UWB2WayMultiRange* tracker)
 : UWBProtocol(0),
   onRangingCompleteCallback(0),
   tracker_(NULL),
   masterModule_(NULL),
+  numberOfAgents_(numOfAgents),
   hasToken_(false),
   master_request_1_timestamp_(0),
   slave_reply_timestamp_(0),
   master_request_2_timestamp_(0),
   timediff_slave_(0)
 {
-	registerTracker(tracker);
+
+	if (tracker)
+		registerTracker(tracker);
 
 	timer.start();
 	timeOfLastRanging = 0;
@@ -42,7 +45,7 @@ void UWBSwarmRing::registerTracker(UWB2WayMultiRange* tracker) {
 	address_ = tracker_->getAddress();
 }
 
-void UWBSwarmRing::setRangingCompleteCallback(void* (*pF)(UWB2WayMultiRange&, const UWB2WayMultiRange::RawRangingResult&))
+void UWBSwarmRing::setRangingCompleteCallback(void (*pF)(const UWB2WayMultiRange::RawRangingResult&))
 {
 	this->onRangingCompleteCallback = pF;
 }
@@ -107,7 +110,7 @@ void UWBSwarmRing::rangeNextAgent() {
 
 	detachInterruptCallbacks();
 
-	if ((uint8_t)address_ != (uint8_t)TAIL_ADDRESS)
+	if ((uint8_t)address_ != (uint8_t)numberOfAgents_)
 		nextAddress = address_ + 1;
 	else
 		nextAddress = 1;
@@ -133,7 +136,7 @@ void UWBSwarmRing::rangeNextAgent() {
 	timeMessageAfter = timer.read_us();
 
 	if (onRangingCompleteCallback)
-		this->onRangingCompleteCallback(*tracker_, *raw_result);
+		this->onRangingCompleteCallback(*raw_result);
 
 	attachInterruptCallbacks();
 
