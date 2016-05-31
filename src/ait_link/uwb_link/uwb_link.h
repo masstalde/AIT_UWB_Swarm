@@ -19,6 +19,7 @@ namespace ait {
     virtual int getSize() const = 0;
     virtual void buildMessage(uint8_t* buffer) const = 0;
     virtual bool decodeMessage(const uint8_t* buffer, size_t buffer_size) = 0;
+    virtual ~UWBMessageBody(){};
   };
 
   class UWBMessageString : public UWBMessageBody {

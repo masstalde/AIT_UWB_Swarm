@@ -21,6 +21,7 @@ const DW1000Utils::SfdSetting SFD_SETTING = DW1000Utils::SFD_decawave;
 //const DW1000Utils::DataRateSetting DATA_RATE_SETTING = DW1000Utils::RATE_110_kbps;
 //const uint32_t PREAMBLE_SETTING = DW1000Utils::PREAMBLE_LENGTH_1024;
 
+const bool USE_NLOS_SETTINGS = false;
 
 //#undef _DEBUG
 #define _DEBUG 1

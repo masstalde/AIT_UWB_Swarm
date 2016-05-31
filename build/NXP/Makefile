@@ -30,7 +30,7 @@ INCLUDE_PATHS += $(SRCDIR)/BufferedSerial/Buffer
 INCLUDE_PATHS += $(SRCDIR)/ait_link
 INCLUDE_PATHS += $(SRCDIR)/UWB2WayMultiRange
 INCLUDE_PATHS += $(SRCDIR)/UWBProtocol
-INCLUDE_PATHS += $(SRCDIR)/UWBSlave
+#INCLUDE_PATHS += $(SRCDIR)/UWBSlave
 INCLUDE_PATHS += $(SRCDIR)/UWBSwarmRing
 
 INCLUDE_PATHS += $(SRCDIR)/mbed
@@ -88,13 +88,15 @@ ifdef $(BUILD_SLAVE)
   CC_FLAGS += -DBUILD_SLAVE
 endif
 
-upload3: all upload2
+uploadAll: all upload1 upload2 upload3
+
+upload3: all 
 	cp $(PROJECT).bin /cygdrive/o/
 	
-upload2: all upload
+upload2: all 
 	cp $(PROJECT).bin /cygdrive/n/
 
-upload: all
+upload1: all
 	cp $(PROJECT).bin /cygdrive/m/
 		
 all: $(PROJECT).bin $(PROJECT).hex 

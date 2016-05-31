@@ -82,6 +82,7 @@ void UWBSwarmRing::receiveFrameCallback(){
 		case RING_TOKEN:
 				hasToken_ = true;
 			break;
+
 		}
 	}
 	else
@@ -117,20 +118,35 @@ void UWBSwarmRing::rangeNextAgent() {
 
 	raw_result = &(tracker_->measureTimesOfFlight(nextAddress, 0.02));
 
-	if(raw_result->status != 0)
-		wait_ms(3000);
+	if(raw_result->status != UWB2WayMultiRange::SUCCESS)
+	{
+		//DEBUG_PRINTF("\r\nSOFT RESET\r\n");
+
+		for (uint8_t i = 0; i < tracker_->getNumOfModules(); i++){
+			DW1000* dw_ptr = tracker_->getModule(i);
+			dw_ptr->resetAll();
+
+			if (USE_NLOS_SETTINGS)
+				DW1000Utils::setNLOSSettings(dw_ptr, DATA_RATE_SETTING, PRF_SETTING, PREAMBLE_SETTING, SFD_SETTING);
+			else
+				DW1000Utils::setLOSSettings(dw_ptr, DATA_RATE_SETTING, PRF_SETTING, PREAMBLE_SETTING, SFD_SETTING);
+		}
+
+		return;
+	}
 	else
 	{
-		DEBUG_PRINTF("\r\nRanging OK\r\n");
+		//DEBUG_PRINTF("\r\nRanging OK\r\n");
 	}
 
-	hasToken_ = false;
 
 	timeMessageBefore = timer.read_us();
 	bool recv = sendRangingFrameBlocking(masterModule_, nextAddress, RING_TOKEN,
 			0.1f);
 	if (!recv)
 		ERROR_PRINTF("Could not send Token!\r\n");
+	else
+		hasToken_ = false;
 
 
 	timeMessageAfter = timer.read_us();
