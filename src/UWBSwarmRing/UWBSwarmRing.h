@@ -39,6 +39,7 @@ private:
 	void attachInterruptCallbacks();		//start listening for frames
 	void detachInterruptCallbacks();		//stop listening for frames, go into blocking mode
 
+	void resetModules();
 	void receiveFrameCallback();
 	void sentFrameCallback();
 
@@ -48,6 +49,7 @@ private:
 	DW1000*	masterModule_;
 	uint8_t numberOfAgents_;
 	bool hasToken_;
+	bool isRingStarter_;
 
 	Timer timer;
 	uint32_t timeOfLastRanging;

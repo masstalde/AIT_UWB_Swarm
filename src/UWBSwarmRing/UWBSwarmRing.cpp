@@ -20,6 +20,7 @@ UWBSwarmRing::UWBSwarmRing(uint8_t numOfAgents, UWB2WayMultiRange* tracker)
   masterModule_(NULL),
   numberOfAgents_(numOfAgents),
   hasToken_(false),
+  isRingStarter_(true),
   master_request_1_timestamp_(0),
   slave_reply_timestamp_(0),
   master_request_2_timestamp_(0),
@@ -52,10 +53,19 @@ void UWBSwarmRing::setRangingCompleteCallback(void (*pF)(const UWB2WayMultiRange
 
 void UWBSwarmRing::startRingParticipation() {
 
-	if (address_ == 1)
-		hasToken_ = true;
+	attachInterruptCallbacks();
+
+	if (address_ != 1)
+		isRingStarter_ = false;
 	else
-		attachInterruptCallbacks();
+		wait_ms(50);
+
+	if (isRingStarter_)
+	{
+		detachInterruptCallbacks();
+		hasToken_ = true;
+	}
+
 }
 
 //Routine executed after DW1000 triggered the Rx interrupt. No further Rx interrupts are generated during this routine! (b/c Flag clears after)
@@ -81,6 +91,7 @@ void UWBSwarmRing::receiveFrameCallback(){
 
 		case RING_TOKEN:
 				hasToken_ = true;
+				isRingStarter_ = false;
 			break;
 
 		}
@@ -122,15 +133,7 @@ void UWBSwarmRing::rangeNextAgent() {
 	{
 		//DEBUG_PRINTF("\r\nSOFT RESET\r\n");
 
-		for (uint8_t i = 0; i < tracker_->getNumOfModules(); i++){
-			DW1000* dw_ptr = tracker_->getModule(i);
-			dw_ptr->resetAll();
-
-			if (USE_NLOS_SETTINGS)
-				DW1000Utils::setNLOSSettings(dw_ptr, DATA_RATE_SETTING, PRF_SETTING, PREAMBLE_SETTING, SFD_SETTING);
-			else
-				DW1000Utils::setLOSSettings(dw_ptr, DATA_RATE_SETTING, PRF_SETTING, PREAMBLE_SETTING, SFD_SETTING);
-		}
+		resetModules();
 
 		return;
 	}
@@ -143,8 +146,10 @@ void UWBSwarmRing::rangeNextAgent() {
 	timeMessageBefore = timer.read_us();
 	bool recv = sendRangingFrameBlocking(masterModule_, nextAddress, RING_TOKEN,
 			0.1f);
-	if (!recv)
-		ERROR_PRINTF("Could not send Token!\r\n");
+	if (!recv){
+		resetModules();
+		return;
+	}
 	else
 		hasToken_ = false;
 
@@ -163,6 +168,18 @@ void UWBSwarmRing::rangeNextAgent() {
 
 	timeOfLastRanging = timer.read_ms();
 
+}
+
+void UWBSwarmRing::resetModules(){
+	for (uint8_t i = 0; i < tracker_->getNumOfModules(); i++){
+		DW1000* dw_ptr = tracker_->getModule(i);
+		dw_ptr->resetAll();
+
+		if (USE_NLOS_SETTINGS)
+			DW1000Utils::setNLOSSettings(dw_ptr, DATA_RATE_SETTING, PRF_SETTING, PREAMBLE_SETTING, SFD_SETTING);
+		else
+			DW1000Utils::setLOSSettings(dw_ptr, DATA_RATE_SETTING, PRF_SETTING, PREAMBLE_SETTING, SFD_SETTING);
+	}
 }
 
 void UWBSwarmRing::attachInterruptCallbacks() {
