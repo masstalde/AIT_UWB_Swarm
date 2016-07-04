@@ -21,6 +21,7 @@ UWBSwarmRing::UWBSwarmRing(uint8_t numOfAgents, UWB2WayMultiRange* tracker)
   numberOfAgents_(numOfAgents),
   hasToken_(false),
   isRingStarter_(true),
+  resetFlag_(false),
   master_request_1_timestamp_(0),
   slave_reply_timestamp_(0),
   master_request_2_timestamp_(0),
@@ -117,6 +118,9 @@ void UWBSwarmRing::rangeNextAgent() {
 	uint8_t nextAddress = 0;
 	const UWB2WayMultiRange::RawRangingResult* raw_result;
 
+	if ((timer.read_ms()-timeOfLastRanging) > RESET_DELAY_MS && timeOfLastRanging > 0)
+		resetFlag_ = true;
+
 	if (!hasToken_)
 		return;
 
@@ -135,6 +139,9 @@ void UWBSwarmRing::rangeNextAgent() {
 
 		resetModules();
 
+		//if (onRangingCompleteCallback)
+		//	this->onRangingCompleteCallback(*raw_result);
+
 		return;
 	}
 	else
@@ -142,8 +149,6 @@ void UWBSwarmRing::rangeNextAgent() {
 		//DEBUG_PRINTF("\r\nRanging OK\r\n");
 	}
 
-
-	timeMessageBefore = timer.read_us();
 	bool recv = sendRangingFrameBlocking(masterModule_, nextAddress, RING_TOKEN,
 			0.1f);
 	if (!recv){
@@ -153,8 +158,6 @@ void UWBSwarmRing::rangeNextAgent() {
 	else
 		hasToken_ = false;
 
-
-	timeMessageAfter = timer.read_us();
 
 	if (onRangingCompleteCallback)
 		this->onRangingCompleteCallback(*raw_result);

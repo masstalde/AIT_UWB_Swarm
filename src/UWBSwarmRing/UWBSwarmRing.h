@@ -25,6 +25,9 @@ public:
 
 	void setRangingCompleteCallback(void (*pF)(const UWB2WayMultiRange::RawRangingResult&));
 
+	bool getResetFlag(void){return resetFlag_;}
+
+
 private:
 
 	enum FrameType
@@ -35,6 +38,8 @@ private:
 	        SLAVE_REPORT,
 	        RING_TOKEN
 	    };
+
+	const uint32_t RESET_DELAY_MS = 60;
 
 	void attachInterruptCallbacks();		//start listening for frames
 	void detachInterruptCallbacks();		//stop listening for frames, go into blocking mode
@@ -50,11 +55,10 @@ private:
 	uint8_t numberOfAgents_;
 	bool hasToken_;
 	bool isRingStarter_;
+	bool resetFlag_;
 
 	Timer timer;
 	uint32_t timeOfLastRanging;
-	uint32_t timeMessageBefore;
-	uint32_t timeMessageAfter;
 
 	uint64_t master_request_1_timestamp_;
 	uint64_t slave_reply_timestamp_;
