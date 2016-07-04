@@ -52,7 +52,7 @@ public:
     {
     	//Standard channel is 5, so all settings are for channel 5
     	if (prf_setting == PRF_16_MHz){
-    	    dw_ptr->writeRegister32(DW1000_TX_POWER, 0, 0x28282828);            //Power for channel 5
+    	    dw_ptr->writeRegister32(DW1000_TX_POWER, 0, 0xA8A8A8A8);            //Power for channel 5
     	    //dw_ptr->writeRegister32(DW1000_TX_POWER, 0, 0x1F1F1F1F);            //Power for channel 5
     	}
     	else

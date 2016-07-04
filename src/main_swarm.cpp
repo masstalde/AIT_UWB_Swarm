@@ -90,7 +90,12 @@ int main()
 
     //Get the address of the header board
     const uint8_t tracker_address = addressPins[0] + (addressPins[1] << 1) + (addressPins[2] << 2);
-    tracker.setAddress(tracker_address);
+
+    //HACK 'cause I killed a pin on board #2...
+    if ((bool)tracker_address)
+    	tracker.setAddress(tracker_address);
+    else
+    	tracker.setAddress(2);
 
     // Now we can initialize the DW modules
     for (int i = 0; i < NUM_OF_DW_UNITS; ++i)
@@ -118,7 +123,7 @@ int main()
             DW1000Utils::setLOSSettings(&dw_array[i], DATA_RATE_SETTING, PRF_SETTING, PREAMBLE_SETTING, SFD_SETTING);
     }
 
-    send_status_message(ul, "\r\nInitializing tracker with address %d", tracker_address);
+    send_status_message(ul, "\r\nInitializing tracker with address %d", tracker.getAddress());
 
 
     for (int i = 0; i < NUM_OF_DW_UNITS; ++i)
@@ -134,6 +139,8 @@ int main()
     {
 
     	ring.rangeNextAgent();
+    	if (ring.getResetFlag())
+    		mbed_reset();
 
     }
 }
@@ -160,25 +167,24 @@ void sendMeasurementsToSerial(const UWB2WayMultiRange::RawRangingResult& raw_res
 		if (!ul.sendMessage(msg)) {
 			ERROR_PRINTF("\r\nSending UWBLink message failed\r\n");
 		}
+	}else{
+		UWBMessageString msg_str(UWB2WayMultiRange::RANGING_STATUS_MESSAGES[raw_result.status]);
+		UWBMessage msg(UWBMessage::UWB_MESSAGE_TYPE_STATUS, &msg_str);
+		if (!ul.sendMessage(msg)) {
+			DEBUG_PRINTF("\r\nSending UWBLink message failed\r\n");
+		}
+
 	}
 }
 
 void sendStatusStringToSerial(const UWB2WayMultiRange::RawRangingResult& raw_result){
 
-	UWBMessageString msg_str;
-
-	if (raw_result.status == UWB2WayMultiRange::SUCCESS){
-		msg_str = "Ranging OK";
-	}
-	else{
-		msg_str = "Ranging failed!"; //strcat("Ranging failed: ", raw_result.status_description);
-	}
+	UWBMessageString msg_str(raw_result.status_description);
 
 	UWBMessage msg(UWBMessage::UWB_MESSAGE_TYPE_STATUS, &msg_str);
 	if (!ul.sendMessage(msg)) {
 		DEBUG_PRINTF("\r\nSending UWBLink message failed\r\n");
 	}
-
 }
 
 
