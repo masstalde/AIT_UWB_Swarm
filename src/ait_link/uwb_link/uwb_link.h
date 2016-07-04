@@ -45,7 +45,7 @@ namespace ait {
     }
 
     virtual void buildMessage(uint8_t* buffer) const {
-      memcpy(buffer, str_, getSize());
+      memcpy(buffer, str_, strlen(str_)+1);
     }
 
     virtual bool decodeMessage(const uint8_t* buffer, size_t buffer_size) {
