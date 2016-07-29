@@ -56,12 +56,14 @@ BufferedSerial pc(USBTX, USBRX, 115200, 1024);           // USB UART Terminal
 SPI spi(DW_MOSI_PIN, DW_MISO_PIN, DW_SCLK_PIN);
 UWBLinkMbed ul(&pc, MAX_UWB_LINK_FRAME_LENGTH);
 DigitalIn addressPins[3] = {DigitalIn(p15), DigitalIn(p14), DigitalIn(p13)};
+DigitalOut resetPin(p30);
 InterruptIn irq(DW_IRQ_PIN);
 UWB2WayMultiRange tracker(3);
 UWBSwarmRing ring;
 
 #ifdef MBED_LPC1768
-    DW1000 dw_array[] = {DW1000(spi, &irq, p8), DW1000(spi, p9), DW1000(spi, p10), DW1000(spi, p11)};
+//	DW1000 dw_array[] = {DW1000(spi, &irq, p8), DW1000(spi, p9), DW1000(spi, p10), DW1000(spi, p11)};
+	DW1000 dw_array[] = {DW1000(spi, &irq, p8)};
 #endif
 #ifdef NUCLEO_411RE
     DW1000 dw_array[]= {DW1000(spi, D15), DW1000(spi, D14), DW1000(spi, D9), DW1000(spi, D8)}; //, DW1000(spi, D10)};
@@ -79,6 +81,12 @@ void consoleHandler();
 int main()
 {
     send_status_message(ul, "==== AIT UWB Multi Range ====");
+
+    //Reset all Modules
+    resetPin = 0;
+    wait_ms(10);
+    resetPin = 1;
+
 
     spi.format(8, 0);                    // Setup the spi for standard 8 bit data and SPI-Mode 0
     spi.frequency(SPI_FREQUENCY);
@@ -132,7 +140,12 @@ int main()
     }
 
     ring.registerTracker(&tracker);
-    ring.setRangingCompleteCallback(&sendMeasurementsToSerial);
+
+    if (tracker.getAddress() == 2)
+    	ring.setRangingCompleteCallback(&sendMeasurementsToSerial);
+    else
+    	ring.setRangingCompleteCallback(&printDistancesToConsole);
+
     ring.startRingParticipation();
 
     while (true)
