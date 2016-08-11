@@ -22,6 +22,7 @@ public:
 	UWB2WayMultiRange* getTracker(){ return tracker_;}
 	void startRingParticipation();
 	void rangeNextAgent();
+	void rangeAllAgents();
 
 	void setRangingCompleteCallback(void (*pF)(const UWB2WayMultiRange::RawRangingResult&));
 
@@ -39,7 +40,10 @@ private:
 	        RING_TOKEN
 	    };
 
-	const uint32_t RESET_DELAY_MS = 60;
+	const uint32_t RESET_DELAY_MS = 120;
+
+	void rangeAgent(uint8_t destAddress, const UWB2WayMultiRange::RawRangingResult* raw_result);
+	bool sendTokenTo(uint8_t destAddress);
 
 	void attachInterruptCallbacks();		//start listening for frames
 	void detachInterruptCallbacks();		//stop listening for frames, go into blocking mode

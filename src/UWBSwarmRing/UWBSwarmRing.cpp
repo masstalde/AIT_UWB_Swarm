@@ -115,7 +115,6 @@ void UWBSwarmRing::sentFrameCallback(){
 }
 
 void UWBSwarmRing::rangeNextAgent() {
-	uint8_t nextAddress = 0;
 	const UWB2WayMultiRange::RawRangingResult* raw_result;
 
 	if ((timer.read_ms()-timeOfLastRanging) > RESET_DELAY_MS && timeOfLastRanging > 0)
@@ -126,10 +125,7 @@ void UWBSwarmRing::rangeNextAgent() {
 
 	detachInterruptCallbacks();
 
-	if ((uint8_t)address_ != (uint8_t)numberOfAgents_)
-		nextAddress = address_ + 1;
-	else
-		nextAddress = 1;
+	uint8_t	nextAddress = address_  % numberOfAgents_ + 1;
 
 	raw_result = &(tracker_->measureTimesOfFlight(nextAddress, 0.02));
 
@@ -138,39 +134,92 @@ void UWBSwarmRing::rangeNextAgent() {
 		//DEBUG_PRINTF("\r\nSOFT RESET\r\n");
 
 		resetModules();
-
-		//if (onRangingCompleteCallback)
-		//	this->onRangingCompleteCallback(*raw_result);
-
-		return;
-	}
-	else
-	{
+	} else {
 		//DEBUG_PRINTF("\r\nRanging OK\r\n");
-	}
 
-	bool recv = sendRangingFrameBlocking(masterModule_, nextAddress, RING_TOKEN,
-			0.1f);
-	if (!recv){
-		resetModules();
-		return;
+		sendTokenTo(nextAddress);
 	}
-	else
-		hasToken_ = false;
-
 
 	if (onRangingCompleteCallback)
 		this->onRangingCompleteCallback(*raw_result);
 
 	attachInterruptCallbacks();
 
-	uint32_t timeElapsedMs = timer.read_ms() - timeOfLastRanging;
-
+//	uint32_t timeElapsedMs = timer.read_ms() - timeOfLastRanging;
 	//DEBUG_PRINTF_VA("Time elapsed for entire Loop: %i\r\n", timeElapsedMs);
 	//DEBUG_PRINTF_VA("Time elapsed for single short frame: %i\r\n", timeMessageAfter - timeMessageBefore);
 
-	timeOfLastRanging = timer.read_ms();
+	if(raw_result->status == UWB2WayMultiRange::SUCCESS)
+		timeOfLastRanging = timer.read_ms();
 
+}
+
+void UWBSwarmRing::rangeAllAgents() {
+	const UWB2WayMultiRange::RawRangingResult* raw_result;
+	uint8_t nextAddress = 0;
+
+	if ((timer.read_ms()-timeOfLastRanging) > RESET_DELAY_MS && timeOfLastRanging > 0)
+			resetFlag_ = true;
+
+	if (!hasToken_ && nextAddress != address_)
+		return;
+
+	detachInterruptCallbacks();
+
+	nextAddress = address_  % numberOfAgents_ + 1;
+
+	while (nextAddress != address_) {
+
+		raw_result = &(tracker_->measureTimesOfFlight(nextAddress, 0.02));
+
+		if (raw_result->status != UWB2WayMultiRange::SUCCESS) {
+			//DEBUG_PRINTF("\r\nSOFT RESET\r\n");
+
+			resetModules();
+		}else
+			nextAddress = nextAddress % numberOfAgents_ + 1;
+
+		if (onRangingCompleteCallback)
+			this->onRangingCompleteCallback(*raw_result);
+
+	}
+
+	nextAddress = address_  % numberOfAgents_ + 1;
+	sendTokenTo(nextAddress);
+
+
+	attachInterruptCallbacks();
+
+//	uint32_t timeElapsedMs = timer.read_ms() - timeOfLastRanging;
+	//DEBUG_PRINTF_VA("Time elapsed for entire Loop: %i\r\n", timeElapsedMs);
+	//DEBUG_PRINTF_VA("Time elapsed for single short frame: %i\r\n", timeMessageAfter - timeMessageBefore);
+
+	if(raw_result->status == UWB2WayMultiRange::SUCCESS)
+		timeOfLastRanging = timer.read_ms();
+
+}
+
+//void UWBSwarmRing::rangeAgent(uint8_t destAddress, const UWB2WayMultiRange::RawRangingResult* raw_result) {
+//
+//	if (!hasToken_ && destAddress != address_)
+//			return;
+//
+//	raw_result = &(tracker_->measureTimesOfFlight(destAddress, 0.02));
+//
+//
+//}
+
+bool UWBSwarmRing::sendTokenTo(uint8_t destAddress) {
+	bool recv = sendRangingFrameBlocking(masterModule_, destAddress, RING_TOKEN,
+			0.1f);
+	//Test for successfully sent TOKEN, should fail VERY RARELY
+	if (!recv) {
+		resetModules();
+		return false;
+	} else
+		hasToken_ = false;
+
+	return true;
 }
 
 void UWBSwarmRing::resetModules(){

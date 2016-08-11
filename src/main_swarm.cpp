@@ -62,8 +62,8 @@ UWB2WayMultiRange tracker(3);
 UWBSwarmRing ring;
 
 #ifdef MBED_LPC1768
-//	DW1000 dw_array[] = {DW1000(spi, &irq, p8), DW1000(spi, p9), DW1000(spi, p10), DW1000(spi, p11)};
-	DW1000 dw_array[] = {DW1000(spi, &irq, p8)};
+	DW1000 dw_array[] = {DW1000(spi, &irq, p8), DW1000(spi, p9), DW1000(spi, p10), DW1000(spi, p11)};
+//	DW1000 dw_array[] = {DW1000(spi, &irq, p8)};
 #endif
 #ifdef NUCLEO_411RE
     DW1000 dw_array[]= {DW1000(spi, D15), DW1000(spi, D14), DW1000(spi, D9), DW1000(spi, D8)}; //, DW1000(spi, D10)};
@@ -151,7 +151,9 @@ int main()
     while (true)
     {
 
-    	ring.rangeNextAgent();
+    	//ring.rangeNextAgent();
+    	ring.rangeAllAgents();
+
     	if (ring.getResetFlag())
     		mbed_reset();
 
