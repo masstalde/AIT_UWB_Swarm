@@ -79,7 +79,7 @@ class DW1000
         bool hasSentFrame();
         bool hasReceivedFrame();
         uint16_t getFramelength();                                                              // to get the framelength of the received frame from the PHY header
-        //void clearReceivedFlag();
+        void clearReceivedFlag();
         void clearSentFlag();
         uint64_t getSYSTimestamp();
         uint64_t getRXTimestamp();

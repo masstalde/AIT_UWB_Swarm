@@ -99,12 +99,11 @@ void UWBSwarmRing::receiveFrameCallback(){
 	}
 	else
 	{
-		wait_us(10);
 		masterModule_->startRX();
 	}
 }
 
-void UWBSwarmRing::sentFrameCallback(){
+void UWBSwarmRing::sentFrameCallback() {
 
 	switch (rangingFrame_.type){
 
@@ -129,21 +128,24 @@ void UWBSwarmRing::rangeNextAgent() {
 
 	raw_result = &(tracker_->measureTimesOfFlight(nextAddress, 0.02));
 
+	if (onRangingCompleteCallback)
+		this->onRangingCompleteCallback(*raw_result);
+
+	//wait_ms(10);
+
 	if(raw_result->status != UWB2WayMultiRange::SUCCESS)
 	{
 		//DEBUG_PRINTF("\r\nSOFT RESET\r\n");
-
 		resetModules();
+		wait_us(10);
 	} else {
 		//DEBUG_PRINTF("\r\nRanging OK\r\n");
 
 		sendTokenTo(nextAddress);
+		attachInterruptCallbacks();
 	}
 
-	if (onRangingCompleteCallback)
-		this->onRangingCompleteCallback(*raw_result);
 
-	attachInterruptCallbacks();
 
 //	uint32_t timeElapsedMs = timer.read_ms() - timeOfLastRanging;
 	//DEBUG_PRINTF_VA("Time elapsed for entire Loop: %i\r\n", timeElapsedMs);
@@ -161,34 +163,49 @@ void UWBSwarmRing::rangeAllAgents() {
 	if ((timer.read_ms()-timeOfLastRanging) > RESET_DELAY_MS && timeOfLastRanging > 0)
 			resetFlag_ = true;
 
-	if (!hasToken_ && nextAddress != address_)
+	if (!hasToken_)
 		return;
 
 	detachInterruptCallbacks();
 
 	nextAddress = address_  % numberOfAgents_ + 1;
 
-	while (nextAddress != address_) {
+	raw_result = &(tracker_->measureTimesOfFlight(nextAddress, 0.02));
 
-		raw_result = &(tracker_->measureTimesOfFlight(nextAddress, 0.02));
+	if (onRangingCompleteCallback)
+		this->onRangingCompleteCallback(*raw_result);
 
-		if (raw_result->status != UWB2WayMultiRange::SUCCESS) {
-			//DEBUG_PRINTF("\r\nSOFT RESET\r\n");
+	if (raw_result->status != UWB2WayMultiRange::SUCCESS) {
+		//DEBUG_PRINTF("\r\nSOFT RESET\r\n");
 
-			resetModules();
-		}else
-			nextAddress = nextAddress % numberOfAgents_ + 1;
+		resetModules();
+		wait_us(10);
+		return;
+	}
 
-		if (onRangingCompleteCallback)
+	nextAddress = nextAddress % numberOfAgents_ + 1;
+	raw_result = &(tracker_->measureTimesOfFlight(nextAddress, 0.02));
+
+	wait_us(20);
+
+	if (onRangingCompleteCallback)
 			this->onRangingCompleteCallback(*raw_result);
 
+	if (raw_result->status != UWB2WayMultiRange::SUCCESS) {
+		//DEBUG_PRINTF("\r\nSOFT RESET\r\n");
+
+		resetModules();
+		wait_us(10);
+		return;
 	}
 
 	nextAddress = address_  % numberOfAgents_ + 1;
 	sendTokenTo(nextAddress);
 
-
 	attachInterruptCallbacks();
+
+
+
 
 //	uint32_t timeElapsedMs = timer.read_ms() - timeOfLastRanging;
 	//DEBUG_PRINTF_VA("Time elapsed for entire Loop: %i\r\n", timeElapsedMs);
@@ -222,10 +239,9 @@ bool UWBSwarmRing::sendTokenTo(uint8_t destAddress) {
 	return true;
 }
 
-void UWBSwarmRing::resetModules(){
+void UWBSwarmRing::resetModules() volatile{
 	for (uint8_t i = 0; i < tracker_->getNumOfModules(); i++){
 		DW1000* dw_ptr = tracker_->getModule(i);
-		dw_ptr->resetAll();
 
 		if (USE_NLOS_SETTINGS)
 			DW1000Utils::setNLOSSettings(dw_ptr, DATA_RATE_SETTING, PRF_SETTING, PREAMBLE_SETTING, SFD_SETTING);
@@ -234,7 +250,7 @@ void UWBSwarmRing::resetModules(){
 	}
 }
 
-void UWBSwarmRing::attachInterruptCallbacks() {
+void UWBSwarmRing::attachInterruptCallbacks(){
 
 	if (masterModule_->isInterruptInit())
 		masterModule_->setCallbacks(this, &UWBSwarmRing::receiveFrameCallback, &UWBSwarmRing::sentFrameCallback);
@@ -242,7 +258,7 @@ void UWBSwarmRing::attachInterruptCallbacks() {
 		ERROR_PRINTF("Cannot set interrupt for masterModule \r\n");
 }
 
-void UWBSwarmRing::detachInterruptCallbacks() {
+void UWBSwarmRing::detachInterruptCallbacks() volatile{
 
 	masterModule_->setCallbacks(NULL, NULL);
 }

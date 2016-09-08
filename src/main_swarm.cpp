@@ -141,7 +141,7 @@ int main()
 
     ring.registerTracker(&tracker);
 
-    if (tracker.getAddress() == 2)
+    if (tracker.getAddress() != 0)
     	ring.setRangingCompleteCallback(&sendMeasurementsToSerial);
     else
     	ring.setRangingCompleteCallback(&printDistancesToConsole);
@@ -154,8 +154,10 @@ int main()
     	//ring.rangeNextAgent();
     	ring.rangeAllAgents();
 
-    	if (ring.getResetFlag())
+    	if (ring.getResetFlag()){
     		mbed_reset();
+    		wait_ms(10);
+    	}
 
     }
 }
@@ -188,7 +190,6 @@ void sendMeasurementsToSerial(const UWB2WayMultiRange::RawRangingResult& raw_res
 		if (!ul.sendMessage(msg)) {
 			DEBUG_PRINTF("\r\nSending UWBLink message failed\r\n");
 		}
-
 	}
 }
 

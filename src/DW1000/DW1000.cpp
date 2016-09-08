@@ -140,9 +140,9 @@ bool DW1000::hasReceivedFrame() {
     return status & 0x4000;
 }
 
-//void DW1000::clearReceivedFlag() {
-//    writeRegister16(DW1000_SYS_STATUS, 0, 0x6F00);              // clearing of receiving status bits
-//}
+void DW1000::clearReceivedFlag() {
+    writeRegister16(DW1000_SYS_STATUS, 0, 0x6F00);              // clearing of receiving status bits
+}
 
 bool DW1000::hasSentFrame() {
     uint64_t status = getStatus();

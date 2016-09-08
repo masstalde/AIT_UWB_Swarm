@@ -46,9 +46,9 @@ private:
 	bool sendTokenTo(uint8_t destAddress);
 
 	void attachInterruptCallbacks();		//start listening for frames
-	void detachInterruptCallbacks();		//stop listening for frames, go into blocking mode
+	void detachInterruptCallbacks() volatile;		//stop listening for frames, go into blocking mode
 
-	void resetModules();
+	void resetModules() volatile;
 	void receiveFrameCallback();
 	void sentFrameCallback();
 
