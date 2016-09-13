@@ -92,7 +92,8 @@ bool UWBProtocol::receiveAnyFrameBlocking(DW1000* dw_ptr, float timeout, uint64_
             *timestamp_recv = dw_ptr->getRXTimestamp();
         }
 
-        //After receveing anything, RX re-enabled (flag clears automatically)
+        //After receiving anything, RX re-enabled (flag clears automatically)
+        dw_ptr->stopTRX();
 		dw_ptr->startRX();
     }
 

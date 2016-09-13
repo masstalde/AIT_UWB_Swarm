@@ -156,7 +156,6 @@ int main()
 
     	if (ring.getResetFlag()){
     		mbed_reset();
-    		wait_ms(10);
     	}
 
     }

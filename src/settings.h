@@ -26,7 +26,7 @@ const bool USE_NLOS_SETTINGS = false;
 //#undef _DEBUG
 #define _DEBUG 1
 #define PRINT_ERRORS 1 
-#define ANSWER_DELAY_US_MASTER	1700
+#define ANSWER_DELAY_US_MASTER	1700 //1700
 
 #if _DEBUG
     #ifndef _DEBUG_PC_DEFINED

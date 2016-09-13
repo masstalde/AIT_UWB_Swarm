@@ -9,7 +9,7 @@ const bool DWM1000_DAMAGED = true;
 //static PC pc(USBTX, USBRX, 115200);           // USB UART Terminal
 
 DW1000::DW1000(SPI& spi, InterruptIn* irq, PinName CS, PinName RESET)
-: spi(spi), cs(CS), reset(RESET), interruptIsInit(true)
+: interruptIsInit(true), spi(spi), cs(CS), reset(RESET)
 {
 	this->irq = irq;
 	this->irq->rise(this, &DW1000::ISR);
@@ -17,7 +17,7 @@ DW1000::DW1000(SPI& spi, InterruptIn* irq, PinName CS, PinName RESET)
 
 }
 DW1000::DW1000(SPI& spi, PinName CS, PinName RESET)
-: spi(spi), cs(CS), reset(RESET), interruptIsInit(false)
+: interruptIsInit(false), spi(spi), cs(CS), reset(RESET)
 {
 
 	if (!interruptIsInit)
@@ -151,6 +151,16 @@ bool DW1000::hasSentFrame() {
 
 void DW1000::clearSentFlag() {
     writeRegister8(DW1000_SYS_STATUS, 0, 0xF8);                 // clearing of sending status bits
+}
+
+void DW1000::disableInterrupts()
+{
+	setInterrupt(false, false);
+}
+
+void DW1000::enableInterrupts()
+{
+	setInterrupt(true, true);
 }
 
 uint64_t DW1000::getSYSTimestamp() {

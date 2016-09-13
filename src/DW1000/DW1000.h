@@ -81,6 +81,8 @@ class DW1000
         uint16_t getFramelength();                                                              // to get the framelength of the received frame from the PHY header
         void clearReceivedFlag();
         void clearSentFlag();
+        void disableInterrupts();
+        void enableInterrupts();
         uint64_t getSYSTimestamp();
         uint64_t getRXTimestamp();
         uint64_t getTXTimestamp();
@@ -128,7 +130,7 @@ class DW1000
 
     private:
         void init();
-        void resetRX();                                                                         // soft reset only the tranciever part of DW1000
+        void resetRX();                                                                         // soft reset only the transceiver part of DW1000
 
         // Interrupt
         InterruptIn* irq;

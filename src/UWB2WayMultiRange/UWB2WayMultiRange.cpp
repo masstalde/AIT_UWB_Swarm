@@ -97,7 +97,7 @@ const UWB2WayMultiRange::RawRangingResult& UWB2WayMultiRange::measureTimesOfFlig
 
     
     // Reset transmitter on all modules, start receiver
-    for (int i = 0; i < moduleCounter_; ++i)
+    for (int i = 1; i < moduleCounter_; ++i)
     {
     	dw_vector_.at(i)->stopTRX();
     	dw_vector_.at(i)->startRX();
@@ -136,6 +136,14 @@ const UWB2WayMultiRange::RawRangingResult& UWB2WayMultiRange::measureTimesOfFlig
 
     //DEBUG_PRINTF_VA("\r\n Time for 3x reception of MasterReq1:		t= %i us\r\n", timeB-timeA);
 
+
+    for (int i = 0; i < moduleCounter_; ++i)
+    {
+    	dw_vector_.at(i)->stopTRX();
+    	dw_vector_.at(i)->startRX();
+    }
+
+
     // Waiting for slave reply on Master - RX is re-enabled after every received frame!
     bool recv_status = receiveSlaveFrameBlocking(primary_dw, SLAVE_REPLY, timeout_time - timer_.read(), &raw_result_.timestamp_slave_reply.at(0), stats1);
     if (!recv_status)
@@ -157,6 +165,12 @@ const UWB2WayMultiRange::RawRangingResult& UWB2WayMultiRange::measureTimesOfFlig
             return raw_result_;
         }
     }
+
+    for (int i = 1; i < moduleCounter_; ++i)
+        {
+        	dw_vector_.at(i)->stopTRX();
+        	dw_vector_.at(i)->startRX();
+        }
 
     // Sending master request 2
     //Calculate the timestamp for the transmission based on the reception timestamp.
