@@ -155,12 +155,18 @@ void DW1000::clearSentFlag() {
 
 void DW1000::disableInterrupts()
 {
-	setInterrupt(false, false);
+	if (irq != NULL) {
+		irq->disable_irq();
+		setInterrupt(false, false);
+	}
 }
 
 void DW1000::enableInterrupts()
 {
-	setInterrupt(true, true);
+	if (irq != NULL) {
+		irq->enable_irq();
+		setInterrupt(true, true);
+	}
 }
 
 uint64_t DW1000::getSYSTimestamp() {
@@ -327,14 +333,14 @@ void DW1000::hardwareReset(PinName reset_pin) {
 }
 
 void DW1000::resetAll() {
-    if (reset.is_connected()) {
-        reset = 1;
-        wait_ms(100);
-        reset = 0;
-        wait_ms(100);
-        reset = 1;
-        wait_ms(100);
-    }
+//    if (reset.is_connected()) {
+//        reset = 1;
+//        wait_ms(100);
+//        reset = 0;
+//        wait_ms(100);
+//        reset = 1;
+//        wait_ms(100);
+//    }
 
     writeRegister8(DW1000_PMSC, 0, 0x01);   // set clock to XTAL
     writeRegister8(DW1000_PMSC, 3, 0x00);   // set All reset

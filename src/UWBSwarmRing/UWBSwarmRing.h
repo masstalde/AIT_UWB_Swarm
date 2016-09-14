@@ -40,7 +40,7 @@ private:
 	        RING_TOKEN
 	    };
 
-	const uint32_t RESET_DELAY_MS = 120;
+	const int RESET_DELAY_MS = 60;
 
 	void rangeAgent(uint8_t destAddress, const UWB2WayMultiRange::RawRangingResult* raw_result);
 	bool sendTokenTo(uint8_t destAddress);

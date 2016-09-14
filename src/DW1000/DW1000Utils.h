@@ -52,7 +52,7 @@ public:
     {
     	//Standard channel is 5, so all settings are for channel 5
     	if (prf_setting == PRF_16_MHz){
-    	    dw_ptr->writeRegister32(DW1000_TX_POWER, 0, 0xA8A8A8A8);            //Power for channel 5
+    	    dw_ptr->writeRegister32(DW1000_TX_POWER, 0, 0x28282828);            //Power for channel 5
     	    //dw_ptr->writeRegister32(DW1000_TX_POWER, 0, 0x1F1F1F1F);            //Power for channel 5
     	}
     	else
@@ -276,6 +276,7 @@ public:
     static void setLOSSettings(DW1000* dw_ptr, DataRateSetting rate_setting = RATE_850_kbps, PrfSetting prf_setting = PRF_16_MHz, uint32_t preamble_setting = PREAMBLE_LENGTH_1024, SfdSetting sfd_setting = SFD_standard)
     {
         dw_ptr->stopTRX();
+    	dw_ptr->disableInterrupts();
         dw_ptr->resetAll();
 
     	setStandardChannel(dw_ptr, prf_setting);
@@ -317,6 +318,7 @@ public:
         		dw_ptr->writeRegister32(DW1000_DRX_CONF, 0x08, 0x353B015E);			//PAC size for 1024 symbols preamble & 64MHz PRF
         }
         dw_ptr->loadLDE();
+        dw_ptr->enableInterrupts();
         dw_ptr->startRX();
 
     }

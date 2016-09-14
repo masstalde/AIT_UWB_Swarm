@@ -256,6 +256,11 @@ void send_status_message(UWBLink& ul, const char* str, ...)
     va_end(args);
 }
 
+extern "C" void HardFault_Handler()
+{
+	mbed_reset();
+}
+
 //bool measureTimesOfFlight(UWB2WayMultiRange& tracker, UWBLink& ul, Timer& timer, float ranging_timeout)
 //{
 //#if _DEBUG

@@ -54,7 +54,9 @@ void UWBSwarmRing::setRangingCompleteCallback(void (*pF)(const UWB2WayMultiRange
 
 void UWBSwarmRing::startRingParticipation() {
 
+	isRingStarter_ = true;
 	attachInterruptCallbacks();
+	masterModule_->startRX();
 
 	if (address_ != 1)
 		isRingStarter_ = false;
@@ -65,7 +67,6 @@ void UWBSwarmRing::startRingParticipation() {
 	{
 		hasToken_ = true;
 	}
-
 }
 
 //Routine executed after DW1000 triggered the Rx interrupt. No further Rx interrupts are generated during this routine! (b/c Flag clears after)
@@ -163,8 +164,11 @@ void UWBSwarmRing::rangeAllAgents() {
 	const UWB2WayMultiRange::RawRangingResult* raw_result;
 	uint8_t nextAddress = 0;
 
-//	if ((timer.read_ms()-timeOfLastRanging) > RESET_DELAY_MS && timeOfLastRanging > 0)
-//			resetFlag_ = true;
+//	if (timeOfLastRanging > 0 && (timer.read_ms() - (int)timeOfLastRanging) > RESET_DELAY_MS) {
+//			resetModules();
+//			timeOfLastRanging = 0;
+//			startRingParticipation();
+//	}
 
 	if (!hasToken_){
 		return;
@@ -184,6 +188,7 @@ void UWBSwarmRing::rangeAllAgents() {
 		//DEBUG_PRINTF("\r\nSOFT RESET\r\n");
 
 		resetModules();
+		timeOfLastRanging = 0;
 		return;
 	}
 
@@ -197,6 +202,7 @@ void UWBSwarmRing::rangeAllAgents() {
 		//DEBUG_PRINTF("\r\nSOFT RESET\r\n");
 
 		resetModules();
+		timeOfLastRanging = 0;
 		return;
 	}
 
@@ -216,15 +222,6 @@ void UWBSwarmRing::rangeAllAgents() {
 
 }
 
-//void UWBSwarmRing::rangeAgent(uint8_t destAddress, const UWB2WayMultiRange::RawRangingResult* raw_result) {
-//
-//	if (!hasToken_ && destAddress != address_)
-//			return;
-//
-//	raw_result = &(tracker_->measureTimesOfFlight(destAddress, 0.02));
-//
-//
-//}
 
 bool UWBSwarmRing::sendTokenTo(uint8_t destAddress) {
 	bool recv = sendRangingFrameBlocking(masterModule_, destAddress, RING_TOKEN,
