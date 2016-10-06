@@ -101,6 +101,15 @@ void DW1000::setCallbacks(void (*callbackRX)(void), void (*callbackTX)(void)) {
         TX = true;
     }
     setInterrupt(RX, TX);
+//////////////////////////////
+    if (!TX && !RX && irq)
+    {
+    	irq->disable_irq();
+    }
+    else if (irq){
+    	irq->enable_irq();
+    }
+////////////////////////////////
 }
 
 uint32_t DW1000::getDeviceID() {

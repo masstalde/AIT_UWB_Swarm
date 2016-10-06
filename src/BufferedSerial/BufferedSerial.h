@@ -159,6 +159,10 @@ public:
      */
     void attachRxCallback(void (*fptr)(void));
 
+    void disableTx();
+    void resumeTx();
+    bool serialDisabled_ = false;
+
 };
 
 #endif

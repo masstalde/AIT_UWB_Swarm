@@ -131,7 +131,7 @@ int BufferedSerial::printf(const char* format, va_list args)
 
 ssize_t BufferedSerial::write(const void *s, size_t length)
 {
-    if (s != NULL && length > 0) {
+    if (s != NULL && length > 0 && !serialDisabled_) {
         const char* ptr = (const char*)s;
         const char* end = ptr + length;
 
@@ -184,4 +184,15 @@ void BufferedSerial::attachRxCallback(void (*fptr)(void))
 		rxCallback = fptr;
 }
 
+void BufferedSerial::disableTx()
+{
+	serialDisabled_ = true;
+    RawSerial::attach(NULL, RawSerial::TxIrq);    // make sure not to cause contention in the irq
 
+}
+
+void BufferedSerial::resumeTx()
+{
+	serialDisabled_ = false;
+	prime();
+}

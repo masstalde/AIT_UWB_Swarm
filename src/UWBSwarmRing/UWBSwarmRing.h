@@ -15,7 +15,7 @@ namespace ait{
 class UWBSwarmRing: public UWBProtocol {
 
 public:
-	UWBSwarmRing(uint8_t numOfAgents = 3, UWB2WayMultiRange* tracker = NULL);
+	UWBSwarmRing(uint8_t numOfAgents = 3, UWB2WayMultiRange* tracker = NULL, BufferedSerial* serial = NULL);
 	virtual ~UWBSwarmRing();
 
 	void registerTracker(UWB2WayMultiRange* tracker);
@@ -40,7 +40,7 @@ private:
 	        RING_TOKEN
 	    };
 
-	const int RESET_DELAY_MS = 60;
+	const int RESET_DELAY_MS = 30;
 
 	void rangeAgent(uint8_t destAddress, const UWB2WayMultiRange::RawRangingResult* raw_result);
 	bool sendTokenTo(uint8_t destAddress);
@@ -54,6 +54,8 @@ private:
 
 	void (*onRangingCompleteCallback)(const UWB2WayMultiRange::RawRangingResult&);		//what to do with the resulted measurements
 
+	BufferedSerial* serial_;
+
 	UWB2WayMultiRange* tracker_;
 	DW1000*	masterModule_;
 	uint8_t numberOfAgents_;
@@ -62,7 +64,7 @@ private:
 	bool resetFlag_;
 
 	Timer timer;
-	uint32_t timeOfLastRanging;
+	uint32_t timeOfLastMessage;
 
 	uint64_t master_request_1_timestamp_;
 	uint64_t slave_reply_timestamp_;

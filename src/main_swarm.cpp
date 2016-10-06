@@ -59,7 +59,7 @@ DigitalIn addressPins[3] = {DigitalIn(p15), DigitalIn(p14), DigitalIn(p13)};
 DigitalOut resetPin(p30);
 InterruptIn irq(DW_IRQ_PIN);
 UWB2WayMultiRange tracker(3);
-UWBSwarmRing ring;
+UWBSwarmRing ring(3, NULL, &pc);
 
 #ifdef MBED_LPC1768
 	DW1000 dw_array[] = {DW1000(spi, &irq, p8), DW1000(spi, p9), DW1000(spi, p10), DW1000(spi, p11)};
@@ -99,9 +99,12 @@ int main()
     //Get the address of the header board
     const uint8_t tracker_address = addressPins[0] + (addressPins[1] << 1) + (addressPins[2] << 2);
 
-    //HACK 'cause I killed a pin on board #2...
+    //HACK 'cause I killed a pin on board #2... AND BOARD #3
     if ((bool)tracker_address)
-    	tracker.setAddress(tracker_address);
+    	if (tracker_address == 2)
+    		tracker.setAddress(3);
+    	else
+    		tracker.setAddress(tracker_address);
     else
     	tracker.setAddress(2);
 
@@ -155,7 +158,8 @@ int main()
     	ring.rangeAllAgents();
 
     	if (ring.getResetFlag()){
-    		mbed_reset();
+    		//mbed_reset();
+    	    ring.startRingParticipation();
     	}
 
     }
